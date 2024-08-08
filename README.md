@@ -1,4 +1,4 @@
-# ET54xx.py
+# ET54
 
 Python class for remote controlling EastTester ET54 series electronic loads.
 
@@ -12,24 +12,25 @@ This *should* work with all of the following devices:
 * ET5420A+
 * ET5411A+
 
-However, I only have two different ET5410A+ models and cannot test the others.
-I'd be grateful for input from people who own any of the other models.
+However, I have two different versions of the ET5410A+ but have no access to
+any of the other models. If you own any of the other models and are willing to
+do some testing, please get in touch.
 
 ## Mustool ET5410A+
 
 There are *Mustool* branded version of the ET5410A+ and possibly also of the
-other models. These devices run a modified firmware and do not respond with a
-model ID to the `IDN?` command (they show model number 'XXXXXX'). In
-order to make these devices work, you need to explicitly provide the model ID
-when initializing the device:
+other models. These devices run a modified firmware and return an empty model
+ID (`xxxxxx`) in response to the `IDN?` command. To make these devices work,
+you need to explicitly provide the model ID when initializing the device:
 
-    import ET54xxx
-    el = ET54xx.ET53xx("ASRL/dev/ttyUSB0", model="ET5410A+")
+    from ET54 import ET54
+    el = ET54("ASRL/dev/ttyUSB0", model="ET5410A+")
 
 
 # Status
 
-So far, basic functionality is supported but advanced features are still missing.
+This is work in progress. There is some functionality already, but it is still
+very incomplete and mostly untested. Hang on until I get it somewhat stable.
 
 # Example script
 

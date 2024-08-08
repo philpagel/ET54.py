@@ -1,5 +1,5 @@
 """
-Controlling EastTester ET54 series electronic loads
+Controlling East Tester ET54 series electronic loads
 """
 
 import pyvisa
