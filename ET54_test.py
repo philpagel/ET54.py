@@ -1,63 +1,101 @@
+import pytest
 from ET54 import ET54
 
 el = ET54("ASRL/dev/ttyUSB1")
-
-def trest_reset():
-    el.reset()
+print("\nModel: ", el.idn["model"])
+print("Firmware: ", el.idn["firmware"])
+print("Hardware: ", el.idn["hardware"])
 
 def test_state():
-    el.ch1.on()
-    assert el.ch1.get_state() == "ON"
+    ch = el.ch1
 
-    el.ch1.off()
-    assert el.ch1.get_state() == "OFF"
+    ch.on()
+    assert ch.get_state() == "ON"
 
-def test_mode():
-    el.ch1.set_mode("CV")
-    assert el.ch1.get_mode() == "CV"
+    ch.off()
+    assert ch.get_state() == "OFF"
 
-    el.ch1.set_mode("cc")
-    assert el.ch1.get_mode() == "CC"
+@pytest.mark.parametrize(
+    "mode,value",
+    [
+        ("CV", "CV"),
+        ("cc", "CC"),
+        ("CP", "CP"),
+        ("cr", "CR"),
+        ("CCCV", "CCCV"),
+        ("CRcv", "CRCV"),
+        ("tran", "TRAN"),
+        ("LIST", "LIST"),
+        ("SHOR", "SHOR"),
+        ("batt", "BATT"),
+        ("led", "LED"),
+    ]
+        )
+def test_mode(mode, value):
+    ch = el.ch1
 
-    el.ch1.set_mode("CP")
-    assert el.ch1.get_mode() == "CP"
-
-    el.ch1.set_mode("CR")
-    assert el.ch1.get_mode() == "CR"
-
-    el.ch1.set_mode("CCCV")
-    assert el.ch1.get_mode() == "CCCV"
-
-    el.ch1.set_mode("CRCV")
-    assert el.ch1.get_mode() == "CRCV"
-
-    el.ch1.set_mode("tran")
-    assert el.ch1.get_mode() == "TRAN"
-
-    el.ch1.set_mode("LIST")
-    assert el.ch1.get_mode() == "LIST"
-
-    el.ch1.set_mode("shor")
-    assert el.ch1.get_mode() == "SHOR"
-
-    el.ch1.set_mode("batt")
-    assert el.ch1.get_mode() == "BATT"
-
-    el.ch1.set_mode("led")
-    assert el.ch1.get_mode() == "LED"
+    ch.set_mode(mode)
+    assert ch.get_mode() == value
 
 
-def test_range():
-    el.ch1.set_Vrange("HIGH")
-    assert el.ch1.get_Vrange() == "HIGH"
+@pytest.mark.parametrize(
+    "mode,value", 
+    [("High", "HIGH"), ("low", "LOW")]
+    )
+def test_range(mode, value):
+    ch = el.ch1
 
-    el.ch1.set_Vrange("low")
-    assert el.ch1.get_Vrange() == "LOW"
+    ch.set_Vrange(mode)
+    assert ch.get_Vrange() == value
 
-    el.ch1.set_Crange("high")
-    assert el.ch1.get_Crange() == "HIGH"
+    ch.set_Crange(mode)
+    assert ch.get_Vrange() == value
 
-    el.ch1.set_Crange("low")
-    assert el.ch1.get_Crange() == "LOW"
 
-def test_
+@pytest.mark.parametrize(
+        "Crange,value",
+        [("low", 0.1),
+         ("low", 1.7),
+         ("low", 2.8),
+         ("high", 1.2),
+         ("high", 24.1),
+         ("high", 40),
+         ])
+def test_OCP(Crange, value):
+    ch = el.ch1
+    ch.set_Crange(Crange)
+
+    ch.set_OCP(value)
+    assert ch.get_OCP() == value
+
+@pytest.mark.parametrize(
+        "Crange,value",
+        [("low", 0.1),
+         ("low", 1.7),
+         ("low", 2.8),
+         ("high", 1.2),
+         ("high", 24.1),
+         ("high", 40),
+         ])
+def test_current(Crange, value):
+    ch = el.ch1
+    ch.set_Crange(Crange)
+
+    ch.set_current_CC(value)
+    assert ch.get_current_CC() == value
+
+    ch.set_current_CCCV(value)
+    assert ch.get_current_CCCV() == value
+
+    ch.set_current_LED(value)
+    assert ch.get_current_LED() == value
+
+def test_measure():
+    ch = el.ch1
+
+    assert ch.read_voltage() < 0.5
+    assert ch.read_current() < 0.5
+    assert ch.read_power() < 0.5
+    assert ch.read_resistance() < 0.5
+    assert len(ch.read_all()) == 4
+

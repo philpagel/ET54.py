@@ -2,7 +2,7 @@
 Controlling East Tester ET54 series electronic loads
 """
 
-import time, pyvisa
+import time, re, pyvisa
 
 class ET54:
     "ET54 series electronic load"
@@ -13,6 +13,7 @@ class ET54:
         self.connection.read_termination = "\r\n"
         self.connection.write_termination = "\n"
         #self.connection.baud_rate=9600
+        self.delay = 0.1   # delay after slow commands
 
         self.idn = dict()
         if model:
@@ -29,16 +30,16 @@ class ET54:
 
         match self.idn["model"].upper():
             case "ET5410":
-                self.ch1 = channel("1", self.connection)
+                self.ch1 = channel("1", self.write, self.query)
             case "ET5410A+":
-                self.ch1 = channel("1", self.connection)
+                self.ch1 = channel("1", self.write, self.query)
             case "ET5411":
-                self.ch1 = channel("1", self.connection)
+                self.ch1 = channel("1", self.write, self.query)
             case "ET5411A+":
-                self.ch1 = channel("1", self.connection)
+                self.ch1 = channel("1", self.write, self.query)
             case "ET5420A+":
-                self.ch1 = channel("1", self.connection)
-                self.ch2 = channel("2", self.connection)
+                self.ch1 = channel("1", self.write, self.query)
+                self.ch2 = channel("2", self.write, self.query)
             case _:
                 raise RuntimeError(f"Instrument ID '{self.idn['model']}' not supported." )
 
@@ -48,14 +49,32 @@ class ET54:
     def __str__(self):
         return f"{self.idn['model']} electronic load\nSN:{self.idn['SN']}\nFirmware: {self.idn['firmware']}\n Hardware: {self.idn['hardware']}"
 
+    def write(self, command):
+        "Write command to connection and check status"
+
+        ret = self.connection.query(command)
+        if ret != "Rexecu success":
+            print(ret)
+        time.sleep(self.delay)
+        return ret
+    
+    def query(self, command):
+        "Write command to connection and return answer value"
+
+        value = self.connection.query(command)
+        if value == "Rcmd err":
+            return None
+        else:
+            return value
+
 
 class channel:
     "Electronic load channel"
 
-    def __init__(self, name, connection):
-        self.connection = connection
+    def __init__(self, name, write, query):
         self.name = name
-        self.delay = 0.1   # delay after slow commands
+        self.write = write
+        self.query = query
 
     def __str__(self):
         mode = self.mode()
@@ -92,18 +111,11 @@ Current range:     {self.get_Crange()}
             case "LED":
                 pass
 
-    def write(self, command):
-        "Write command to connection and check status"
-
-        ret = self.connection.query(command)
-        if ret != "Rexecu success":
-            print(ret)
-        return ret
     
 
     def get_state(self):
         "Return input stat (on|off)"
-        return self.connection.query(f"Ch{self.name}:SW?")
+        return self.query(f"Ch{self.name}:SW?")
 
     def on(self):
         "turn input on"
@@ -127,33 +139,31 @@ Current range:     {self.get_Crange()}
 
     def get_mode(self):
         "Return mode"
-        return self.connection.query(f"Ch{self.name}:MODE?")
+        return self.query(f"Ch{self.name}:MODE?")
 
     def set_Vrange(self, Vrange):
         "set voltage range to {high|low}"
 
         if Vrange.lower() in ("high", "low"):
             self.write(f"LOAD{self.name}:VRANge {Vrange}")
-            time.sleep(self.delay)
         else:
             raise ValueError(f"Voltage range must be 'high' or 'low'")
     
     def get_Vrange(self):
         "get voltage range (high|low)"
-        return self.connection.query(f"LOAD{self.name}:VRANGE?")
+        return self.query(f"LOAD{self.name}:VRANGE?")
 
     def set_Crange(self, Crange):
         "set current range to (high|low)"
 
         if Crange.lower() in ("high", "low"):
             self.write(f"LOAD{self.name}:CRANge {Crange}")
-            time.sleep(self.delay)
         else:
             raise ValueError(f"current range must be 'high' or 'low'")
     
     def get_Crange(self):
         "get current range (high|low)"
-        return self.connection.query(f"LOAD{self.name}:CRANGE?")
+        return self.query(f"LOAD{self.name}:CRANGE?")
 
 
     ##########################################################################
@@ -161,23 +171,35 @@ Current range:     {self.get_Crange()}
 
     def get_OCP(self):
         "set current OCP value"
-        return self.connection.query(f"CURR{self.name}:IMAX?")
+        return  tofloat(self.query(f"CURR{self.name}:IMAX?"))
 
     def set_OCP(self, value):
         "set current OCP value"
         self.write(f"CURR{self.name}:IMAX {value}")
     
+    def get_current_CC(self):
+        "return the current value for CC mode"
+        return tofloat(self.query(f"CURR{self.name}:CC?"))
+
     def set_current_CC(self, value):
         "set the current value for CC mode"
         self.write(f"CURR{self.name}:CC {value}")
 
+    def get_current_CCCV(self):
+        "return the current value for CC+CV mode"
+        return tofloat(self.query(f"CURR{self.name}:CCCV?"))
+
     def set_current_CCCV(self, value):
-        "set the current value for CCCV mode"
+        "set the current value for CC+CV mode"
         self.write(f"CURR{self.name}:CCCV {value}")
     
+    def get_current_LED(self):
+        "return the current value for LED mode"
+        return tofloat(self.query(f"CURR{self.name}:LED?"))
+
     def set_current_LED(self, value):
         "set the current value for LED mode"
-        self.write(f"CURR{self.name}:CCCV {value}")
+        self.write(f"CURR{self.name}:LED {value}")
     
 
     ##########################################################################
@@ -185,26 +207,35 @@ Current range:     {self.get_Crange()}
 
     def get_mode(self):
         "Return channel mode"
-        return self.connection.query(f"Ch{self.name}:MODE?")
+        return self.query(f"Ch{self.name}:MODE?")
 
     def read_voltage(self):
         "read (measure) input voltage [V]"
-        return float(self.connection.query(f"MEAS{self.name}:VOLT?"))
+        return tofloat(self.query(f"MEAS{self.name}:VOLTAGE?"))
 
     def read_current(self):
         "read (measure) input current [A]"
-        return float(self.query(f"MEAS{self.name}:CURR?"))
+        return tofloat(self.query(f"MEAS{self.name}:CURRENT?"))
 
     def read_power(self):
         "read (measure) input power [W]"
-        return float(self.query(f"MEAS{self.name}:POW?"))
+        return tofloat(self.query(f"MEAS{self.name}:POWER?"))
 
     def read_resistance(self):
         "read (measure) resistance [W]"
-        return float(self.query(f"MEAS{self.name}:RESI?"))
+        return tofloat(self.query(f"MEAS{self.name}:RESISTANCE?"))
 
     def read_all(self):
         "read (measure) output values: Volts [V], current [A], Power[W] Resistance[Ω]"
-        return [float(x) for x in self.query(f"MEAS{self.name}:ALL?").split(",")]
+        return tofloats(self.query(f"MEAS{self.name}:ALL?"))
+
+
+def tofloat(value):
+    "strip leading 'R' and convert to float"
+    return float(re.sub("^R", "", value))
+
+def tofloats(values):
+    "strip leading 'R' split on whitespace and convert all items to float"
+    return [float(x) for x in re.sub("^R", "", values).split()]
 
 
