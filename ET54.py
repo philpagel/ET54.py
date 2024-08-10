@@ -15,18 +15,24 @@ class ET54:
         #self.connection.baud_rate=9600
         self.delay = 0.1   # delay after slow commands
 
+        tmp = self.connection.query("*IDN?").split()
         self.idn = dict()
-        if model:
-            self.idn["model"] = model
-            self.idn["SN"] = None
-            self.idn["firmware"] = None
-            self.idn["hardware"] = None
+        if len(tmp) == 4:
+            (self.idn['model'],
+            self.idn['SN'],
+            self.idn['firmware'],
+            self.idn['hardware'])  = tmp
+        elif len(tmp) == 3 and tmp[0] == "XXXXXX":
+            # handle Mustool branded device
+            self.idn['model'] = tmp[0]
+            self.idn['SN'] = None
+            self.idn['firmware'] = tmp[1]
+            self.idn['hardware'] = tmp[2]
         else:
-            (self.idn['model'], 
-             self.idn['SN'], 
-             self.idn['firmware'],
-             self.idn['hardware'],
-             ) = self.connection.query("*IDN?").split(" ")
+            raise RuntimeError(f"Unable to parse device identification: '{tmp}'")
+        if model:
+            # Override model ID. Required for Mustool devices to work
+            self.idn["modle"] = model
 
         match self.idn["model"].upper():
             case "ET5410":
@@ -89,6 +95,7 @@ Current range:     {self.get_Crange()}
 
         match self.mode():
             case "CC":
+                # XXX
                 pass
             case "CV":
                 pass
@@ -170,16 +177,16 @@ Current range:     {self.get_Crange()}
     # current settings
 
     def get_OCP(self):
-        "set current OCP value"
-        return  tofloat(self.query(f"CURR{self.name}:IMAX?"))
+        "get  OCP current"
+        return  _tofloat(self.query(f"CURR{self.name}:IMAX?"))
 
     def set_OCP(self, value):
-        "set current OCP value"
+        "set OCP current"
         self.write(f"CURR{self.name}:IMAX {value}")
-    
+
     def get_current_CC(self):
         "return the current value for CC mode"
-        return tofloat(self.query(f"CURR{self.name}:CC?"))
+        return _tofloat(self.query(f"CURR{self.name}:CC?"))
 
     def set_current_CC(self, value):
         "set the current value for CC mode"
@@ -187,7 +194,7 @@ Current range:     {self.get_Crange()}
 
     def get_current_CCCV(self):
         "return the current value for CC+CV mode"
-        return tofloat(self.query(f"CURR{self.name}:CCCV?"))
+        return _tofloat(self.query(f"CURR{self.name}:CCCV?"))
 
     def set_current_CCCV(self, value):
         "set the current value for CC+CV mode"
@@ -195,11 +202,23 @@ Current range:     {self.get_Crange()}
     
     def get_current_LED(self):
         "return the current value for LED mode"
-        return tofloat(self.query(f"CURR{self.name}:LED?"))
+        return _tofloat(self.query(f"CURR{self.name}:LED?"))
 
     def set_current_LED(self, value):
         "set the current value for LED mode"
         self.write(f"CURR{self.name}:LED {value}")
+    
+
+    ##########################################################################
+    # power settings
+    
+    def get_OPP(self):
+        "get OPP power"
+        return  _tofloat(self.query(f"POWE{self.name}:PMAX?"))
+
+    def set_OPP(self, value):
+        "set OPP power"
+        self.write(f"POWE{self.name}:PMAX {value}")
     
 
     ##########################################################################
@@ -211,30 +230,32 @@ Current range:     {self.get_Crange()}
 
     def read_voltage(self):
         "read (measure) input voltage [V]"
-        return tofloat(self.query(f"MEAS{self.name}:VOLTAGE?"))
+        return _tofloat(self.query(f"MEAS{self.name}:VOLTAGE?"))
 
     def read_current(self):
         "read (measure) input current [A]"
-        return tofloat(self.query(f"MEAS{self.name}:CURRENT?"))
+        return _tofloat(self.query(f"MEAS{self.name}:CURRENT?"))
 
     def read_power(self):
         "read (measure) input power [W]"
-        return tofloat(self.query(f"MEAS{self.name}:POWER?"))
+        return _tofloat(self.query(f"MEAS{self.name}:POWER?"))
 
     def read_resistance(self):
         "read (measure) resistance [W]"
-        return tofloat(self.query(f"MEAS{self.name}:RESISTANCE?"))
+        return _tofloat(self.query(f"MEAS{self.name}:RESISTANCE?"))
 
     def read_all(self):
         "read (measure) output values: Volts [V], current [A], Power[W] Resistance[Ω]"
-        return tofloats(self.query(f"MEAS{self.name}:ALL?"))
+        return _tofloats(self.query(f"MEAS{self.name}:ALL?"))
 
 
-def tofloat(value):
+# support functions
+
+def _tofloat(value):
     "strip leading 'R' and convert to float"
     return float(re.sub("^R", "", value))
 
-def tofloats(values):
+def _tofloats(values):
     "strip leading 'R' split on whitespace and convert all items to float"
     return [float(x) for x in re.sub("^R", "", values).split()]
 

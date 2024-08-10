@@ -29,8 +29,9 @@ you need to explicitly provide the model ID when initializing the device:
 
 # Status
 
-This is work in progress. There is some functionality already, but it is still
-very incomplete and mostly untested. Hang on until I get it somewhat stable.
+This is work in progress. Basic functionality is implemented, many things are
+still missing.  Hang on until I get it somewhat more complete and stable.
+
 
 # Example script
 
@@ -39,14 +40,15 @@ very incomplete and mostly untested. Hang on until I get it somewhat stable.
     from ET54 import ET54
 
     # connect to the load
-    el = ET54("ASRL/dev/ttyUSB0")
+    el = ET54("ASRL/dev/ttyUSB1")
 
-    # set range (high|low)
+    # set ranges
     el.set_Vange("high")
     el.set_Cange("high")
 
     # start in constant current mode
-    el.ch1.mode.CC(2.5)
+    el.ch1.mode("CC")
+    el.ch1.set_currentCC(3)
     el.ch1.on()
     
     # monitor voltage, current and power for a minute
