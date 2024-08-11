@@ -32,43 +32,49 @@ class ET54:
             raise RuntimeError(f"Unable to parse device identification: '{tmp}'")
         if model:
             # Override model ID. Required for Mustool devices to work
-            self.idn["modle"] = model
+            self.idn["model"] = model
 
-        match self.idn["model"].upper():
-            case "ET5410":
-                self.ch1 = channel("1", self.write, self.query)
-            case "ET5410A+":
-                self.ch1 = channel("1", self.write, self.query)
-            case "ET5411":
-                self.ch1 = channel("1", self.write, self.query)
-            case "ET5411A+":
-                self.ch1 = channel("1", self.write, self.query)
-            case "ET5420A+":
-                self.ch1 = channel("1", self.write, self.query)
-                self.ch2 = channel("2", self.write, self.query)
-            case _:
-                raise RuntimeError(f"Instrument ID '{self.idn['model']}' not supported." )
+        if self.idn["model"] in ("ET5410", "ET5410A+", "ET5411", "ET5411A+"):
+            self.ch1 = channel("1", self.write, self.query)
+        elif self.idn["model"] == "ET5420A+":
+            self.ch1 = channel("1", self.write, self.query)
+            self.ch2 = channel("2", self.write, self.query)
+        else:
+            raise RuntimeError(f"Instrument ID '{self.idn['model']}' not supported.")
 
     def __del__(self):
         self.connection.close()
 
     def __str__(self):
-        return f"{self.idn['model']} electronic load\nSN:{self.idn['SN']}\nFirmware: {self.idn['firmware']}\n Hardware: {self.idn['hardware']}"
+        ret =  f"""{Model:      self.idn['model']} electronic load
+Serial:         {self.idn['SN']}
+Firmware:       {self.idn['firmware']}
+Hardware:       {self.idn['hardware']}
+"""
+        ret += self.ch1.__str__()
+        
+        return ret
 
     def write(self, command):
         "Write command to connection and check status"
 
         ret = self.connection.query(command)
-        if ret != "Rexecu success":
-            print(ret)
         time.sleep(self.delay)
-        return ret
+        if ret == "Rexecu success":
+            return 0
+        elif ret == "Rcmd err":
+            print(f"Command failed ({ret})", file=sys.stderr)
+            return 1
+        else:
+            print(f"Command returned unknown response ({ret})", file=sys.stderr)
+            return 2
     
     def query(self, command):
         "Write command to connection and return answer value"
 
         value = self.connection.query(command)
         if value == "Rcmd err":
+            print(f"Command failed ({value})", file=sys.stderr)
             return None
         else:
             return value
@@ -85,20 +91,22 @@ class channel:
     def __str__(self):
         mode = self.mode()
 
-        ret = f"""Channel:    {self.name}
+        ret = f"""Channel:            {self.name}
 state:              {self.get_}
 mode:               {mode}
-Voltage range:     {self.get_Vrange()}
-Current range:     {self.get_Crange()}
+Input state:        {self.get_state()}
+Voltage range:      {self.get_Vrange()}
+Current range:      {self.get_Crange()}
+OCP:                {self.get_OCP()}
+OPP:                {self.get_OPP()}
 
 """
 
         match self.mode():
             case "CC":
-                # XXX
-                pass
+                ret += f"{self.get_currentCC}"
             case "CV":
-                pass
+                ret += f"{self.get_currentCC}"
             case "CP":
                 pass
             case "CR":
@@ -117,7 +125,7 @@ Current range:     {self.get_Crange()}
                 pass
             case "LED":
                 pass
-
+        return ret
     
 
     def get_state(self):
@@ -132,7 +140,7 @@ Current range:     {self.get_Crange()}
         "turn input off"
         self.write(f"Ch{self.name}:SW OFF")
 
-    ##########################################################################
+    ############################################################ 
     # mode and range
 
     def set_mode(self, mode):
@@ -173,7 +181,7 @@ Current range:     {self.get_Crange()}
         return self.query(f"LOAD{self.name}:CRANGE?")
 
 
-    ##########################################################################
+    ############################################################ 
     # current settings
 
     def get_OCP(self):
@@ -209,7 +217,7 @@ Current range:     {self.get_Crange()}
         self.write(f"CURR{self.name}:LED {value}")
     
 
-    ##########################################################################
+    ############################################################ 
     # power settings
     
     def get_OPP(self):
@@ -221,7 +229,7 @@ Current range:     {self.get_Crange()}
         self.write(f"POWE{self.name}:PMAX {value}")
     
 
-    ##########################################################################
+    ############################################################ 
     # measuring
 
     def get_mode(self):
@@ -247,6 +255,37 @@ Current range:     {self.get_Crange()}
     def read_all(self):
         "read (measure) output values: Volts [V], current [A], Power[W] Resistance[Ω]"
         return _tofloats(self.query(f"MEAS{self.name}:ALL?"))
+
+
+    ############################################################ 
+    # setup CC mode
+
+    def CC_mode():
+        "Put instrument into CC mode"
+        self.write(f"Ch{self.name}:MODE CC")
+
+    def CC_current(self):
+        "return the current value for CC mode"
+        return _tofloat(self.query(f"CURR{self.name}:CC?"))
+
+    def CC_current(self, value):
+        "set the current value for CC mode"
+        self.write(f"CURR{self.name}:CC {value}")
+
+    def CC_setup(current, Vrange="high", Crange="high"):
+        "Configure CC mode parameters"
+        self.CC_mode()
+        self.CC_current(current)
+        self.set_Vrange(Vrange)
+        self.set_Crange(Crange)
+
+    ############################################################
+    # setup CV
+
+    def CV_mode():
+        "Put instrument into CV mode"
+        self.write(f"Ch{self.name}:MODE CV")
+
 
 
 # support functions
