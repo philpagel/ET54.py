@@ -2,7 +2,7 @@
 Controlling East Tester ET54 series electronic loads
 """
 
-import time, re, pyvisa
+import sys, time, pyvisa
 
 class ET54:
     "ET54 series electronic load"
@@ -13,7 +13,7 @@ class ET54:
         self.connection.read_termination = "\r\n"
         self.connection.write_termination = "\n"
         #self.connection.baud_rate=9600
-        self.delay = 0.1   # delay after slow commands
+        self.delay = 0.1   # delay after write
 
         tmp = self.connection.query("*IDN?").split()
         self.idn = dict()
@@ -79,6 +79,10 @@ Hardware:       {self.idn['hardware']}
         else:
             return value
 
+    def close(self):
+        "close connection to instument"
+        self.connection.close()
+
 
 class channel:
     "Electronic load channel"
@@ -92,44 +96,58 @@ class channel:
         mode = self.mode()
 
         ret = f"""Channel:            {self.name}
-state:              {self.get_}
+Input state:        {self.input()}
+Voltage range:      {self.Vrange()}
+Current range:      {self.Crange()}
+OCP:                {self.OCP()}
+OVP:                {self.OVP()}
+OPP:                {self.OPP()}
+
 mode:               {mode}
-Input state:        {self.get_state()}
-Voltage range:      {self.get_Vrange()}
-Current range:      {self.get_Crange()}
-OCP:                {self.get_OCP()}
-OPP:                {self.get_OPP()}
 
 """
 
+        # XXX:
         match self.mode():
             case "CC":
-                ret += f"{self.get_currentCC}"
+                ret += f"Current:           {self.CC_current()}"
             case "CV":
-                ret += f"{self.get_currentCC}"
+                ret += f"Voltage:           {self.CV_voltage()}"
             case "CP":
-                pass
+                ret += f"Power:             {self.CP_power()}"
             case "CR":
-                pass
+                ret += f"Resistance:        {self.CP_resistance()}"
             case "CCCV":
-                pass
+                ret += f"Current:           {self.CCVC_current()}"
+                ret += f"Voltage:           {self.CCCV_voltage()}"
             case "CRCV":
+                ret += f"Resistance:        {self.CRCV_resistance()}"
+                ret += f"Voltage:           {self.CRCV_voltage()}"
+            case "LED":
+                ret += f"Current:           {self.LED_current()}"
+                ret += f"Voltage:           {self.LED_voltage()}"
+                ret += f"Coefficient:       {self.LED_coefficient()}"
+            case "SHOR":
+                pass
+            case "BATT":
                 pass
             case "TRAN":
                 pass
             case "LIST":
                 pass
-            case "SHOR":
-                pass
-            case "BATT":
-                pass
-            case "LED":
-                pass
         return ret
     
+    ############################################################ 
+    # input state
 
-    def get_state(self):
-        "Return input stat (on|off)"
+    def input(self, value=None):
+        "get/set input state (ON|OFF)"
+
+        if value is not None:
+            if value.upper() in ("ON", "OFF"):
+                self.write(f"Ch{self.name}:SW {value}")
+            else:
+                raise RuntimeError(f"invaliid input state '{value}'")
         return self.query(f"Ch{self.name}:SW?")
 
     def on(self):
@@ -141,100 +159,327 @@ OPP:                {self.get_OPP()}
         self.write(f"Ch{self.name}:SW OFF")
 
     ############################################################ 
-    # mode and range
+    # mode and ranges
 
-    def set_mode(self, mode):
-        "set channel to mode {CC|CV|CP|CR|CCCV|CRCV|TRAN|LIST|SHOR|BATT|LED}"
+    def mode(self, mode=None):
+        "get/set channel mode (CC|CV|CP|CR|CCCV|CRCV|TRAN|LIST|SHOR|BATT|LED)"
         
-        mode = mode.upper()
-        if mode in ("CC", "CV", "CP", "CR", "CCCV", "CRCV", "TRAN", "LIST", "SHOR", "BATT", "LED"):
-            self.write(f"Ch{self.name}:MODE {mode}")
-        else:
-            raise ValueError(f"Mode must be in ['CC', 'CV', 'CP', 'CR', 'CCCV', 'CRCV', 'TRAN', 'LIST', 'SHOR', 'BATT', 'LED']")
-
-    def get_mode(self):
-        "Return mode"
+        if mode is not None:
+            mode = mode.upper()
+            if mode in ("CC", "CV", "CP", "CR", "CCCV", "CRCV", "TRAN", "LIST", "SHOR", "BATT", "LED"):
+                self.write(f"Ch{self.name}:MODE {mode}")
+            else:
+                raise ValueError(f"Mode must be in ['CC', 'CV', 'CP', 'CR', 'CCCV', 'CRCV', 'TRAN', 'LIST', 'SHOR', 'BATT', 'LED']")
         return self.query(f"Ch{self.name}:MODE?")
 
-    def set_Vrange(self, Vrange):
-        "set voltage range to {high|low}"
+    def Vrange(self, Vrange=None):
+        "get/set voltage range (high|low)"
 
-        if Vrange.lower() in ("high", "low"):
-            self.write(f"LOAD{self.name}:VRANge {Vrange}")
-        else:
-            raise ValueError(f"Voltage range must be 'high' or 'low'")
-    
-    def get_Vrange(self):
-        "get voltage range (high|low)"
+        if Vrange is not None:
+            if Vrange.lower() in ("high", "low"):
+                self.write(f"LOAD{self.name}:VRANge {Vrange}")
+            else:
+                raise ValueError(f"Voltage range must be 'high' or 'low'")
         return self.query(f"LOAD{self.name}:VRANGE?")
-
-    def set_Crange(self, Crange):
-        "set current range to (high|low)"
-
-        if Crange.lower() in ("high", "low"):
-            self.write(f"LOAD{self.name}:CRANge {Crange}")
-        else:
-            raise ValueError(f"current range must be 'high' or 'low'")
     
-    def get_Crange(self):
-        "get current range (high|low)"
-        return self.query(f"LOAD{self.name}:CRANGE?")
+    def Crange(self, Crange=None):
+        "get/set current range to (high|low)"
 
+        if Crange is not None:
+            if Crange.lower() in ("high", "low"):
+                self.write(f"LOAD{self.name}:CRANge {Crange}")
+            else:
+                raise ValueError(f"current range must be 'high' or 'low'")
+        return self.query(f"LOAD{self.name}:CRANGE?")
+    
 
     ############################################################ 
-    # current settings
+    # protection
+    
+    def OVP(self, value=None):
+        "get/set OVP voltage [V]"
 
-    def get_OCP(self):
-        "get  OCP current"
+        if value is not None:
+            self.write(f"VOLT{self.name}:VMAX {value}")
+        return  _tofloat(self.query(f"VOLT{self.name}:VMAX?"))
+
+    def OCP(self, value=None):
+        "get/set OCP current [A]"
+
+        if value is not None:
+            self.write(f"CURR{self.name}:IMAX {value}")
         return  _tofloat(self.query(f"CURR{self.name}:IMAX?"))
 
-    def set_OCP(self, value):
-        "set OCP current"
-        self.write(f"CURR{self.name}:IMAX {value}")
+    def OPP(self, value=None):
+        "get/set OPP power [W]"
+        
+        if value is not None:
+            self.write(f"POWE{self.name}:PMAX {value}")
+        return  _tofloat(self.query(f"POWE{self.name}:PMAX?"))
+    
+    ############################################################ 
+    # CC mode
 
-    def get_current_CC(self):
-        "return the current value for CC mode"
+    def CC_mode(self, current=None):
+        """Put instrument into constant current (CC) mode
+        and set CC current if given"""
+        self.write(f"Ch{self.name}:MODE CC")
+        if current is not None:
+            self.CC_current(current)
+
+    def CC_current(self, current=None):
+        "get/set the current value for CC mode [A]"
+
+        if current is not None:
+            self.write(f"CURR{self.name}:CC {current}")
         return _tofloat(self.query(f"CURR{self.name}:CC?"))
 
-    def set_current_CC(self, value):
-        "set the current value for CC mode"
-        self.write(f"CURR{self.name}:CC {value}")
+    ############################################################
+    # CV mode
 
-    def get_current_CCCV(self):
-        "return the current value for CC+CV mode"
-        return _tofloat(self.query(f"CURR{self.name}:CCCV?"))
+    def CV_mode(self, voltage=None):
+        """Put instrument into constant voltage (CV) mode
+        and set CV voltage if given
+        """
 
-    def set_current_CCCV(self, value):
-        "set the current value for CC+CV mode"
-        self.write(f"CURR{self.name}:CCCV {value}")
+        self.write(f"Ch{self.name}:MODE CV")
+        if voltage is not None:
+            self.CV_voltage(voltage)
+
+    def CV_voltage(self, voltage=None):
+        "get/set the voltage value for CV mode [V]"
+
+        if voltage is not None:
+            self.write(f"VOLT{self.name}:CV {voltage}")
+        return _tofloat(self.query(f"VOLT{self.name}:CV?"))
     
-    def get_current_LED(self):
-        "return the current value for LED mode"
+    ############################################################
+    # CP mode
+    
+    def CP_mode(self, power=None):
+        """Put instrument into constant power (CP) mode
+        Optionally set power"""
+
+        self.write(f"Ch{self.name}:MODE CP")
+        if power is not None:
+            self.CP_power(power)
+
+    def CP_power(self, power=None):
+        "get/set the power value for CP mode [W]"
+
+        if power is not None:
+            self.write(f"POWE{self.name}:CP {power}")
+        return _tofloat(self.query(f"POWE{self.name}:CP?"))
+
+    ############################################################
+    # CR mode
+    
+    def CR_mode(self, resistance=None):
+        "Put instrument into constant resistance (CR) mode"
+
+        self.write(f"Ch{self.name}:MODE CR")
+        if resistance is not None:
+            self.CR_resistance(resistance)
+
+    def CR_resistance(self, resistance=None):
+        "get/set the resistance value for CR mode [Ω]"
+
+        if resistance is not None:
+            self.write(f"RESI{self.name}:CR {resistance}")
+        return _tofloat(self.query(f"RESI{self.name}:CR?"))
+
+
+    ############################################################
+    # CC+CV mode
+
+    def CCCV_mode(self, current=None, voltage=None):
+        """Put instrument into constant current and constant voltage (CC+CV) mode
+        and set current, voltage if given"""
+
+        self.write(f"Ch{self.name}:MODE CCCV")
+        if current is not None:
+            self.CCCV_current(current)
+        if voltage is not None:
+            self.CCCV_voltage(voltage)
+    
+    def CCCV_current(self, current=None):
+        "get/set the current value for CC+CV mode"
+
+        if current is not None:
+            self.write(f"CURR{self.name}:CCCV {current}")
+        return _tofloat(self.query(f"CURR{self.name}:CCCV?"))
+    
+    def CCCV_voltage(self, voltage=None):
+        "get/set the voltage value for CC+CV mode [V]"
+
+        if voltage is not None:
+            self.write(f"VOLT{self.name}:CCCV {voltage}")
+        return _tofloat(self.query(f"VOLT{self.name}:CCCV?"))
+    
+    ############################################################
+    # CR+CV mode
+
+    def CRCV_mode(self, resistance=None, voltage=None):
+        """Put instrument into constant resistance and constant voltage (CR+CV) mode
+        and set voltage, resistance if given"""
+
+        self.write(f"Ch{self.name}:MODE CRCV")
+        if voltage is not None:
+            self.CRCV_voltage(voltage)
+        if resistance is not None:
+            self.CRCV_resistance(resistance)
+    
+    def CRCV_resistance(self, resistance=None):
+        "get/set the current value for CR+CV mode [A]"
+
+        if resistance is not None:
+            self.write(f"RESI{self.name}:CRCV {resistance}")
+        return _tofloat(self.query(f"RESI{self.name}:CRCV?"))
+
+    def CRCV_voltage(self, voltage=None):
+        "get/set the voltage value for CR+CV mode [V]"
+
+        if voltage is not None:
+            self.write(f"VOLT{self.name}:CRCV {voltage}")
+        return _tofloat(self.query(f"VOLT{self.name}:CRCV?"))
+
+    ############################################################
+    # short mode
+    def SHORT_mode(self):
+        "Put instrument into SHORT circuit mode"
+        self.write(f"Ch{self.name}:MODE SHORT")
+
+    ############################################################
+    # LED mode
+
+    def LED_mode(self, V0=None, I0=None, coef=None):
+        "Put instrument into LED mode"
+
+        self.write(f"Ch{self.name}:MODE LED")
+        if V0 is not None:
+            self.LED.voltage(V0)
+        if I0 is not None:
+            self.LED.current(I0)
+        if coef is not None:
+            self.LED_coefficient(coef)
+
+    def LED_voltage(self, value=None):
+        "get/set the V0 voltage value for LED mode"
+
+        if value is not None:
+            self.write(f"VOLT{self.name}:LED {value}")
+        return _tofloat(self.query(f"VOLT{self.name}:LED?"))
+
+    def LED_current(self, value=None):
+        "get/set the I_0 current value for LED mode"
+
+        if value is not None:
+            self.write(f"CURR{self.name}:LED {value}")
         return _tofloat(self.query(f"CURR{self.name}:LED?"))
 
-    def set_current_LED(self, value):
-        "set the current value for LED mode"
-        self.write(f"CURR{self.name}:LED {value}")
+    def LED_coefficient(self, value=None):
+        """get/set the coefficient for LED mode
+
+        Used in determining the behaviour of the led simulation:
+        Rd = (Vo / Io) * Coeff
+        Vf = Vo * (1 - Coeff)
+        """
+
+        if value is not None:
+            self.write(f"LED{self.name}:COEF {value}")
+        return _tofloat(self.query(f"LED{self.name}:COEF?"))
+
+    ############################################################
+    # battery mode
+
+    def BATTERY_mode(self, mode=None, cutoff=None):
+        """Put instrument into BATTERY mode
+        
+        mode:   {CC|CR}
+        cutoff: V: voltage
+                T: time
+                E: energy
+                C: capacity
+
+        Battery mode allows several different cutoff conditions which require 
+        ispecific sets of parameters:
+
+        1. Voltage cutoff
+        
+        In this mode, battery discharge happens in three phases that are triggered by
+        battery voltage. The load responds by adjusting the constant current.
+"""
+
+        self.write(f"Ch{self.name}:MODE BATT")
+        if mode is not None:
+            if mode.upper() in ("CC", "CV"):
+                self.write("BATT:MODE {mode}")
+            else:
+                raise RuntimeError("Invalid battery discharge mode '{mode}'.")
+        if cutoff is not None:
+            if cutoff.upper() in ("V", "T", "C", "E"):
+                self.write(f"BATT:BCUT ")
+   
+    def BATTCC_currents(self):
+        "return discharge currents"
+
+        return (
+            self.query(f"CURR:BCC1?"),
+            self.query(f"CURR:BCC1?"),
+            self.query(f"CURR:BCC1?"),
+            )
+
+    def BATTCC_current(self, I):
+        "set the three discharge currents for Battery CC mode"
+
+        if len(I) != 3:
+            raise RuntimError("Three discharge currents must be supplied.")
+        else:
+            self.write(f"CURR:BCC1 {I[0]}")
+            self.write(f"CURR:BCC2 {I[1]}")
+            self.write(f"CURR:BCC3 {I[2]}")
+
+    def BATTCC_voltages(self):
+        "return cutoff currents"
+
+        return (
+            self.query(f"VOLT:BCC1?"),
+            self.query(f"VOLT:BCC1?"),
+            self.query(f"VOLT:BCC1?"),
+            )
+
+    def BATTCC_Voltage(self, V):
+        "set the three cutoff voltages for Battery CC mode"
+
+        if len(I) != 3:
+            raise RuntimError("Three cutoff voltages must be supplied.")
+        else:
+            self.write(f"VOLT:BCC1 {V[0]}")
+            self.write(f"VOLT:BCC2 {V[1]}")
+            self.write(f"VOLT:BCC3 {V[2]}")
     
 
-    ############################################################ 
-    # power settings
-    
-    def get_OPP(self):
-        "get OPP power"
-        return  _tofloat(self.query(f"POWE{self.name}:PMAX?"))
+    ############################################################
+    # list mode
 
-    def set_OPP(self, value):
-        "set OPP power"
-        self.write(f"POWE{self.name}:PMAX {value}")
+    def LIST_mode(self):
+        "Put instrument into LIST mode"
+        self.write(f"Ch{self.name}:MODE LIST")
+
+    # XXX: to be implemented
+
+    ############################################################
+    # transient mode
     
+    def TRANSIENT_mode(self):
+        "Put instrument into TRANSIENT mode"
+        self.write(f"Ch{self.name}:MODE TRAN")
+
+    # XXX: to be implemented
+
 
     ############################################################ 
     # measuring
-
-    def get_mode(self):
-        "Return channel mode"
-        return self.query(f"Ch{self.name}:MODE?")
 
     def read_voltage(self):
         "read (measure) input voltage [V]"
@@ -257,45 +502,20 @@ OPP:                {self.get_OPP()}
         return _tofloats(self.query(f"MEAS{self.name}:ALL?"))
 
 
-    ############################################################ 
-    # setup CC mode
-
-    def CC_mode():
-        "Put instrument into CC mode"
-        self.write(f"Ch{self.name}:MODE CC")
-
-    def CC_current(self):
-        "return the current value for CC mode"
-        return _tofloat(self.query(f"CURR{self.name}:CC?"))
-
-    def CC_current(self, value):
-        "set the current value for CC mode"
-        self.write(f"CURR{self.name}:CC {value}")
-
-    def CC_setup(current, Vrange="high", Crange="high"):
-        "Configure CC mode parameters"
-        self.CC_mode()
-        self.CC_current(current)
-        self.set_Vrange(Vrange)
-        self.set_Crange(Crange)
-
-    ############################################################
-    # setup CV
-
-    def CV_mode():
-        "Put instrument into CV mode"
-        self.write(f"Ch{self.name}:MODE CV")
-
-
-
 # support functions
-
 def _tofloat(value):
     "strip leading 'R' and convert to float"
-    return float(re.sub("^R", "", value))
 
-def _tofloats(values):
-    "strip leading 'R' split on whitespace and convert all items to float"
-    return [float(x) for x in re.sub("^R", "", values).split()]
+    if value.startswith("R"):
+        value = value[1:]
+    return float(value)
+
+def _tofloats(value):
+    "strip leading 'R' and convert to float"
+    
+    if value.startswith("R"):
+        value = value[1:].split()
+
+    return [float(x) for x in value]
 
 

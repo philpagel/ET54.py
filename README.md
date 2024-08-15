@@ -29,8 +29,26 @@ you need to explicitly provide the model ID when initializing the device:
 
 # Status
 
-This is work in progress. Basic functionality is implemented, many things are
-still missing.  Hang on until I get it somewhat more complete and stable.
+| Feature                    | Status |
+|--------------------------- |------- |
+| Input on/off               | ✓      |
+| Voltage and current ranges | ✓      |
+| V/A/R/P readout            | ✓      |  
+| OCP, OVP, OPP              | ✓      |
+| CC mode                    | ✓      |
+| CV mode                    | ✓      |
+| CP mode                    | ✓      |
+| CR mode                    | ✓      |
+| CC+CV mode                 | ✓      |
+| CC+CR mode                 | ✓      |
+| LED mode                   | ✓      |  
+| Short mode                 | ✓      |  
+| Battery mode               | —      |  
+| Transient mode             | —      |  
+| List mode                  | —      |  
+
+So basic functions are working and I'm in the process of
+implementing the more involved things.
 
 
 # Example script
@@ -43,22 +61,27 @@ still missing.  Hang on until I get it somewhat more complete and stable.
     el = ET54("ASRL/dev/ttyUSB1")
 
     # set ranges
-    el.set_Vange("high")
-    el.set_Cange("high")
+    el.ch1.Vrange("high")
+    el.ch1.Crange("high")
 
-    # start in constant current mode
-    el.ch1.mode("CC")
-    el.ch1.set_currentCC(3)
+    # set protections
+    el.ch1.OVP(24.5)
+    el.ch1.OCP(4)
+    el.ch1.OPP(85)
+
+    # start in constant current mode (3.1A)
+    el.ch1.CC_mode(3.1)
     el.ch1.on()
     
-    # monitor voltage, current and power for a minute
-    print("timestamp, V, I, P")
+    # monitor voltage, current, power and resistance for a minute
+    print("timestamp, V, I, P, R")
     for i in range(60):
         print(", ".join([str(x) for x in [
             datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             el.ch1.read.voltage(),
-            el.ch1.read.curent(),
+            el.ch1.read.current(),
             el.ch1.read.power(),
+            el.ch1.read.resistance(),
         ]]))
         time.sleep(1)
 
