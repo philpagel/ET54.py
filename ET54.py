@@ -511,7 +511,7 @@ def _tofloat(value):
     return float(value)
 
 def _tofloats(value):
-    "strip leading 'R' and convert to float"
+    "strip leading 'R' split and convert all to float"
     
     if value.startswith("R"):
         value = value[1:].split()

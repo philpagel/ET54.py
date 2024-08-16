@@ -21,6 +21,11 @@ def test_measure():
     assert abs(ch.read_current() - 1.5) < 0.2
     assert abs(ch.read_power() - 18) < 0.2
     assert abs(ch.read_resistance() - 8.0) < 0.2
-    assert len(ch.read_all()) == 4
+    
+    (I,V,P,R) = ch.read_all()
+    assert abs(V - 12.0) < 0.2
+    assert abs(I - 1.5) < 0.2
+    assert abs(P - 18.0) < 0.2
+    assert abs(R - 8.0) < 0.2
     
     ch.off()

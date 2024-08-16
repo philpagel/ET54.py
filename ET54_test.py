@@ -166,8 +166,11 @@ def test_measure():
     assert ch.read_current() <= 0.01
     assert ch.read_power() <= 0.01
     assert ch.read_resistance() <= 0.01
-    assert len(ch.read_all()) == 4
-    # XXX: check content of read all
-    
+    (V,I,P,R) = ch.read_all()
+    assert V <= 0.01
+    assert I <= 0.01
+    assert P <= 0.01
+    assert R <= 0.01
+
     el.ch1.off()
 
