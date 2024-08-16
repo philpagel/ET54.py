@@ -41,8 +41,8 @@ you need to explicitly provide the model ID when initializing the device:
 | CR mode                    | ✓      |
 | CC+CV mode                 | ✓      |
 | CC+CR mode                 | ✓      |
-| LED mode                   | ✓      |  
 | Short mode                 | ✓      |  
+| LED mode                   | ✓      |  
 | Battery mode               | —      |  
 | Transient mode             | —      |  
 | List mode                  | —      |  
@@ -78,10 +78,10 @@ implementing the more involved things.
     for i in range(60):
         print(", ".join([str(x) for x in [
             datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            el.ch1.read.voltage(),
-            el.ch1.read.current(),
-            el.ch1.read.power(),
-            el.ch1.read.resistance(),
+            el.ch1.read_voltage(),
+            el.ch1.read_current(),
+            el.ch1.read_power(),
+            el.ch1.read_resistance(),
         ]]))
         time.sleep(1)
 

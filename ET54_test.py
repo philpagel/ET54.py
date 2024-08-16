@@ -1,7 +1,8 @@
 import pytest
 from ET54 import ET54
         
-# Define parameters to test accross
+# Define parameters for setting voltage, current, power or resistance
+
 heading = "V,I,P,R"
 parameters = [
          (24.2, 14.0, 340.2,  1.74),
@@ -10,8 +11,8 @@ parameters = [
          ]
 
 RID = "ASRL/dev/ttyUSB1"
-# connect to the device
 el = ET54(RID)
+ch = el.ch1
 
 print("\nModel: ", el.idn["model"])
 print("Firmware: ", el.idn["firmware"])
@@ -19,7 +20,6 @@ print("Hardware: ", el.idn["hardware"])
 
 def test_input_state():
     "setting and getting channel on/off state"
-    ch = el.ch1
 
     ch.input("on")
     assert ch.input() == "ON"
@@ -49,18 +49,16 @@ def test_input_state():
          ])
 def test_mode(mode, value):
     "setting and getting operation mode"
-    ch = el.ch1
 
     ch.mode(mode)
     assert ch.mode() == value
 
 @pytest.mark.parametrize(
     "mode,value", 
-    [("High", "HIGH"), ("low", "LOW")]
+    [("low", "LOW"), ("High", "HIGH")]
     )
 def test_range(mode, value):
     "setting and getting voltage and current range"
-    ch = el.ch1
 
     ch.Vrange(mode)
     assert ch.Vrange() == value
@@ -72,19 +70,13 @@ def test_range(mode, value):
 @pytest.mark.parametrize("value", [0.5, 1.3, 2.9])
 def test_OCP(value):
     "setting and getting OCP value"
-    ch = el.ch1
-    ch.Vrange("high")
-    ch.Crange("high")
-
+    
     ch.OCP(value)
     assert ch.OCP() == value
 
 @pytest.mark.parametrize("value", [1.0, 3.4, 7.5, 18.5])
 def test_OVP(value):
     "setting and getting OVP value"
-    ch = el.ch1
-    ch.Vrange("high")
-    ch.Crange("high")
 
     ch.OVP(value)
     assert ch.OVP() == value
@@ -92,9 +84,6 @@ def test_OVP(value):
 @pytest.mark.parametrize("value", [5.0, 50, 120])
 def test_OPP(value):
     "setting and getting OPP value"
-    ch = el.ch1
-    ch.Vrange("high")
-    ch.Crange("high")
 
     ch.OPP(value)
     assert ch.OPP() == value
@@ -102,100 +91,83 @@ def test_OPP(value):
 @pytest.mark.parametrize(heading,parameters)
 def test_CCmode(V, I, P, R):
     "setting and getting current in CC mode"
-    ch = el.ch1
-    ch.Vrange("high")
-    ch.Crange("high")
 
-    ch.CC_mode(I/2)
-    assert ch.CC_current() == I/2
-
-    ch.CC_current(I)
+    ch.CC_mode(I)
+    assert ch.CC_current() == I
+    assert ch.CC_current(0.1) == 0.1
+    assert ch.CC_current(I) == I
     assert ch.CC_current() == I
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CVmode(V, I, P, R):
     "setting and getting voltage in CV mode"
-    ch = el.ch1
-    ch.Vrange("high")
-    ch.Crange("high")
 
-    ch.CV_mode(V/2)
-    assert ch.CV_voltage() == V / 2
-
-    ch.CV_voltage(V)
+    ch.CV_mode(V)
+    assert ch.CV_voltage() == V
+    assert ch.CV_voltage(0.1) == 0.1
+    assert ch.CV_voltage(V) == V
     assert ch.CV_voltage() == V
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CPmode(V, I, P, R):
     "setting and getting power in CP mode"
-    ch = el.ch1
-    ch.Vrange("high")
-    ch.Crange("high")
 
-    ch.CP_mode(P/2)
-    assert ch.CP_power() == P / 2
-
-    ch.CP_power(P)
+    ch.CP_mode(P)
+    assert ch.CP_power() == P
+    assert ch.CP_power(0.1) == 0.1
+    assert ch.CP_power(P) == P
     assert ch.CP_power() == P
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CRmode(V, I, P, R):
     "setting and getting resistance in CR mode"
     
-    ch = el.ch1
-    ch.Vrange("high")
-    ch.Crange("high")
-
-    ch.CR_mode(R/2)
-    assert ch.CR_resistance() == R / 2
-
-    ch.CR_resistance(R)
+    ch.CR_mode(R)
+    assert ch.CR_resistance() == R 
+    assert ch.CR_resistance(0.1) == 0.1
+    assert ch.CR_resistance(R) == R
     assert ch.CR_resistance() == R
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CCCVmode(V, I, P, R):
     "setting and getting voltage and current in CC+CV mode"
-    ch = el.ch1
-    ch.Vrange("high")
-    ch.Crange("high")
 
-    ch.CCCV_mode(I/2, V/2)
-    assert ch.CCCV_current() == I / 2
-    assert ch.CCCV_voltage() == V / 2
-    
-    ch.CCCV_current(I)
+    ch.CCCV_mode(I, V)
     assert ch.CCCV_current() == I
-
-    ch.CCCV_voltage(V)
+    assert ch.CCCV_voltage() == V
+    assert ch.CCCV_current(0.1) == 0.1
+    assert ch.CCCV_voltage(0.1) == 0.1
+    assert ch.CCCV_current(I) == I
+    assert ch.CCCV_current() == I
+    assert ch.CCCV_voltage(V) == V
     assert ch.CCCV_voltage() == V
 
-# XXX: paramter matrix incomplete
 @pytest.mark.parametrize(heading,parameters)
 def test_CRCVmode(V, I, P, R):
     "setting and getting voltage and current in CC+CR mode"
 
-    ch = el.ch1
-    ch.Vrange("high")
-    ch.Crange("high")
-
-    ch.CRCV_mode(R/2, V/2)
-    assert ch.CRCV_resistance() == R / 2
-    assert ch.CRCV_voltage() == V / 2
-    
+    ch.CRCV_mode(R, V)
+    assert ch.CRCV_resistance() == R
+    assert ch.CRCV_voltage() == V
+    assert ch.CRCV_voltage(0.1) == 0.1
     assert ch.CRCV_voltage(V) == V
     assert ch.CRCV_voltage() == V
-
     assert ch.CRCV_resistance(R) == R
     assert ch.CRCV_resistance() == R
 
 def test_measure():
-    "measuring voltage, current, power and resistance"
-    ch = el.ch1
+    """measuring voltage, current, power and resistance
+    This requires tha the input terminals are *shorted*!
+    If they are left floating, the test will fail!
+    """
 
-    assert ch.read_voltage() < 0.1
-    assert ch.read_current() < 0.1
-    assert ch.read_power() < 0.1
-    assert ch.read_resistance() < 0.1
+    el.ch1.on()
+    assert ch.read_voltage() <= 0.01
+    assert ch.read_current() <= 0.01
+    assert ch.read_power() <= 0.01
+    assert ch.read_resistance() <= 0.01
     assert len(ch.read_all()) == 4
     # XXX: check content of read all
+    
+    el.ch1.off()
 
