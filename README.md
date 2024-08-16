@@ -12,16 +12,16 @@ This *should* work with all of the following devices:
 * ET5420A+
 * ET5411A+
 
-However, I have two different versions of the ET5410A+ but have no access to
-any of the other models. If you own any of the other models and are willing to
-do some testing, please get in touch.
+Testing was carried out on my ET5410A+. However, I have no access to any of the
+other models. If you own one of them and are willing to do some testing, please
+get in touch.
 
 ## Mustool ET5410A+
 
 There are *Mustool* branded version of the ET5410A+ and possibly also of the
 other models. These devices run a modified firmware and return an empty model
-ID (`xxxxxx`) in response to the `IDN?` command. To make these devices work,
-you need to explicitly provide the model ID when initializing the device:
+ID (`xxxxxx`) in response to the `*IDN?` SCPI command. To make these devices
+work, you need to explicitly provide the model ID when initializing the device:
 
     from ET54 import ET54
     el = ET54("ASRL/dev/ttyUSB0", model="ET5410A+")
@@ -46,12 +46,28 @@ you need to explicitly provide the model ID when initializing the device:
 | Battery mode               | —      |  
 | Transient mode             | —      |  
 | List mode                  | —      |  
+| Qualification test mode    | —      |  
+| Trigger support            | —      |
+| File commands              | —      |
 
-So basic functions are working and I'm in the process of
+Basic functions are working and I'm in the process of
 implementing the more involved things.
 
 
-# Example script
+# Dependencies
+
+The class requires `pyserial`, `pyvisa` and `pyvisa-py`, all of which can be
+installed with pip:
+
+    python -m pip install -r requirements.txt
+
+If you want to run the automated tests you will also need `pytest`.
+
+# Usage
+
+## In a Nutshell
+
+Here is a little example script that illustrates how things work:
 
     #!/bin/env python3
     import time, datetime
@@ -87,4 +103,73 @@ implementing the more involved things.
 
     # turn off the load channel
     el.ch1.off()
+
+
+## Some principles
+
+The philosophy of the class is that there are no separate getter and setter
+methods. Instead, most methods will return the latest setting and set
+it if you provide an argument. Method names start with the mode
+or functionality.
+
+E.g. Constant current mode:
+
+    el.CC_mode(2.8)         # switch to CC mode and set current to 2.8A
+
+    el.CC_curent()          # get CC current setting
+    el.CC_current(1.5)      # set CC current to new value
+
+
+## Reference
+
+The full documentation is contained in the doc-strings of the class. Use
+`pydoc` to see all of it:
+
+    python -m pydoc ET54
+
+
+# Testing
+
+I use pytest to implement a bunch of test cases in order to verify everything
+is working as intended. As the tests involve talking to actual hardware, you
+need to provide the necessary conditions for some tests to pass:
+
+1. `ET54_test.py`: the input terminals of the load must be shorted so that the
+   input voltage is 0.0V.
+2. `ET54_test_voltage`: the input terminals of the load must be connected to a
+   power supply that provides 12.0 V and can deliver 1.5A.
+
+Install pytest
+
+    python -m pip install pytest
+
+To run the tests:
+
+    make test
+
+Or if you don't have `make` on your machine:
+    
+    # Short the input and run:
+    pytest -v ET54_test.py
+
+    # connect PSU (12V, >1.5A) an run:
+    pytest -v ET54_test_voltage.py
+
+As the load has no external sensing wires, the length and diameter of your test
+leads matters. Keep them short and as big as you can. Using the lead
+compensation feature of the device before startung the tests may help, too.
+
+Currently, only channel 1 of the load is tested, even if you have a
+2-channel device.
+
+# Contributing
+
+If you think you found a bug or you have an idea for a new feature, please open
+an issue here on GitHub. Please **do not submit pull-requests before discussing
+the issue** you want to address.
+
+I would very much appreciate help from people who own any of the models listed
+above (other than the ET5410A+) – no coding skills required: I just need people
+to run the tests on these devices and report the results back to me. Get in
+touch if you would like to do that.
 
