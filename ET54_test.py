@@ -18,6 +18,15 @@ print("\nModel: ", el.idn["model"])
 print("Firmware: ", el.idn["firmware"])
 print("Hardware: ", el.idn["hardware"])
 
+def test_write():
+
+    # invalid command
+    with pytest.raises(RuntimeError):
+        el.write("FOOBAR:12")
+    # failed command
+    with pytest.raises(RuntimeError):
+        el.write("VOLT1:10000")
+
 def test_input_state():
     "setting and getting channel on/off state"
 
@@ -26,6 +35,9 @@ def test_input_state():
 
     ch.input("OFF")
     assert ch.input() == "OFF"
+
+    with pytest.raises(RuntimeError):
+        assert ch.input("invalid")
 
     ch.on()
     assert ch.input() == "ON"
@@ -53,6 +65,12 @@ def test_mode(mode, value):
     ch.mode(mode)
     assert ch.mode() == value
 
+def test_mode_invalid():
+    "set an invalid mode"
+
+    with pytest.raises(ValueError):
+        ch.mode('invalid')
+
 @pytest.mark.parametrize(
     "mode,value", 
     [("low", "LOW"), ("High", "HIGH")]
@@ -66,6 +84,12 @@ def test_range(mode, value):
     ch.Crange(mode)
     assert ch.Crange() == value
 
+def test_range_invalid():
+    "test invalid range value"
+    
+    with pytest.raises(ValueError):
+        ch.Vrange("invalid")
+        ch.Crange("invalid")
 
 @pytest.mark.parametrize("value", [0.5, 1.3, 2.9])
 def test_OCP(value):
@@ -74,6 +98,10 @@ def test_OCP(value):
     ch.OCP(value)
     assert ch.OCP() == value
 
+def test_OCP_invalid():
+    with pytest.raises(RuntimeError):
+        ch.OCP(-10)
+
 @pytest.mark.parametrize("value", [1.0, 3.4, 7.5, 18.5])
 def test_OVP(value):
     "setting and getting OVP value"
@@ -81,12 +109,20 @@ def test_OVP(value):
     ch.OVP(value)
     assert ch.OVP() == value
 
+def test_OVP_invalid():
+    with pytest.raises(RuntimeError):
+        ch.OVP(-10)
+
 @pytest.mark.parametrize("value", [5.0, 50, 120])
 def test_OPP(value):
     "setting and getting OPP value"
 
     ch.OPP(value)
     assert ch.OPP() == value
+
+def test_OPP_invalid():
+    with pytest.raises(RuntimeError):
+        ch.OPP(-10)
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CCmode(V, I, P, R):

@@ -63,11 +63,11 @@ Hardware:       {self.idn['hardware']}
         if ret == "Rexecu success":
             return 0
         elif ret == "Rcmd err":
-            print(f"Command failed ({ret})", file=sys.stderr)
-            return 1
+            raise RuntimeError(f"Unknown SCPI command '{command}' ('{ret}')")
+        elif ret == "Rexecu err":
+            raise RuntimeError(f"SCPI command '{command}' failed ('{ret}')")
         else:
-            print(f"Command returned unknown response ({ret})", file=sys.stderr)
-            return 2
+            raise RuntimeError(f"SCPI command '{command}' returned unknown response ('{ret}')")
     
     def query(self, command):
         "Write command to connection and return answer value"
@@ -392,23 +392,48 @@ mode:               {mode}
     ############################################################
     # battery mode
 
-    def BATTERY_mode(self, mode=None, cutoff=None):
+    def BATTERY_mode(self, mode=None, resistance=None, current=None,
+                     cutoff=None, cutoff_value=None):
         """Put instrument into BATTERY mode
-        
-        mode:   {CC|CR}
-        cutoff: V: voltage
-                T: time
-                E: energy
-                C: capacity
+       
+        Battery mode supports two different operation modes (CC and CR) and
+        four cutoff conditions that govern when the load will turn off:
 
-        Battery mode allows several different cutoff conditions which require 
-        ispecific sets of parameters:
+        mode:       {CC|CR}
 
-        1. Voltage cutoff
+        cutoff:     V: voltage
+                    T: time
+                    E: energy
+                    C: capacity
+
+        current:    CC current value for CC mode
+
+        resistance: resistance value for CR mode
         
-        In this mode, battery discharge happens in three phases that are triggered by
-        battery voltage. The load responds by adjusting the constant current.
-"""
+        cutoff_value:
+                    Value(s) at which the load is turned off or switches to a
+                    different current.
+
+                    Depending on the cutoff mode, this is one of the follwoing.
+                    
+                    For `cutoff={T|E|C}`: a single float defining the cutoff-value:
+
+                        time [s]
+                        energy [Wh]
+                        Capacity [Ah]
+
+                    For `cutoff=V`: a list of three tupples, each of which
+                    contains a (current, voltage) pair indicating a current to
+                    draw until voltage trops to the voltage cutoff.
+                    E.g.:
+
+                    [
+                        (2.00, 15.00),  # 2.00A until we reach 15.00V
+                        (1.50, 12.00),  # 1.50A until we reach 12.00V
+                        (1.00, 10.00),  # 1.0ßA until we reach 10.00V and turn off
+                    ]
+                    
+        """
 
         self.write(f"Ch{self.name}:MODE BATT")
         if mode is not None:
@@ -475,6 +500,18 @@ mode:               {mode}
         "Put instrument into TRANSIENT mode"
         self.write(f"Ch{self.name}:MODE TRAN")
 
+    # XXX: to be implemented
+
+    
+    ############################################################
+    # Qualifiction test mode
+    
+    # XXX: to be implemented
+
+
+    ############################################################
+    # Trigger support
+    
     # XXX: to be implemented
 
 

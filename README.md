@@ -53,6 +53,8 @@ work, you need to explicitly provide the model ID when initializing the device:
 Basic functions are working and I'm in the process of
 implementing the more involved things.
 
+Trying to set invalid values will raise a `RuntimeError` based on the load's
+response.
 
 # Dependencies
 
@@ -144,10 +146,6 @@ Install pytest
     python -m pip install pytest
 
 To run the tests:
-
-    make test
-
-Or if you don't have `make` on your machine:
     
     # Short the input and run:
     pytest -v ET54_test.py
@@ -156,8 +154,8 @@ Or if you don't have `make` on your machine:
     pytest -v ET54_test_voltage.py
 
 As the load has no external sensing wires, the length and diameter of your test
-leads matters. Keep them short and as big as you can. Using the lead
-compensation feature of the device before startung the tests may help, too.
+leads matter. Keep them short and as big as you can. Using the lead
+compensation feature of the device before starting the tests may help, too.
 
 Currently, only channel 1 of the load is tested, even if you have a
 2-channel device.
