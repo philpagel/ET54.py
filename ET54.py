@@ -118,6 +118,7 @@ OCP:            {self.OCP()} A
 OVP:            {self.OVP()} V
 OPP:            {self.OPP()} W
 mode:           {mode}
+trigger:        {self.trigger_mode()}
 """
 
         # XXX:
@@ -193,6 +194,25 @@ mode:           {mode}
     def off(self):
         "turn input off"
         self.write(f"Ch{self.name}:SW OFF")
+
+    def trigger_mode(self, trigmode=None):
+        """Set the trigger mode (MAN|EXT|TRG)
+
+        MAN:    manual trigger (TRIG button)
+        EXT:    external trigger (connector on back)
+        TRG:    remote trigger (trigger() method)
+        """
+        
+        if trigmode is not None:
+            if trigmode.upper() in ("MAN", "EXT", "TRG"):
+                self.write(f"LOAD{self.name}:TRIG {trigmode}")
+            else:
+                raise ValueError(f"invalid trigger mode '{trigmode}'.")
+        return self.query(f"LOAD{self.name}:TRIG?")
+
+    def trigger(self):
+        "trigger event"
+        self.write(f"*TRG")
 
     ############################################################
     # mode and ranges

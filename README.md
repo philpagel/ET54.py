@@ -51,10 +51,10 @@ work, you need to explicitly provide the model ID when initializing the device:
 | Short mode                 | ✓      |  
 | LED mode                   | ✓      |  
 | Battery mode               | ✓      |  
+| Trigger support            | ✓      |
 | Transient mode             | ✓      |  
 | List mode                  | —      |  
 | Qualification test mode    | —      |  
-| Trigger support            | —      |
 | File commands              | —      |
 | Load effect testing        | —      |
 | Remote compensation        | —      |

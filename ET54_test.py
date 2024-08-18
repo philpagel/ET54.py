@@ -80,6 +80,15 @@ def test_mode_invalid():
         ch.mode('invalid')
 
 @pytest.mark.parametrize(
+    "mode", ["MAN", "EXT", "TRG"]
+    )
+def test_trigmode(mode):
+    "get/set trigger mode"
+    
+    assert ch.trigger_mode(mode) == mode
+    assert ch.trigger_mode() == mode
+
+@pytest.mark.parametrize(
     "mode,value", 
     [("low", "LOW"), ("High", "HIGH")]
     )
