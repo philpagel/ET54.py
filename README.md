@@ -17,6 +17,12 @@ Testing was carried out on my ET5410A+. However, I have no access to any of the
 other models. If you own one of them and are willing to do some testing, please
 get in touch.
 
+Possibly, the to smaller ET54 models could work as well:
+
+* ET5406A+
+* ET5407A+
+
+
 ## Mustool ET5410A+
 
 There are *Mustool* branded version of the ET5410A+ and possibly also of the

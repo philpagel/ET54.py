@@ -7,7 +7,7 @@ import sys, time, pyvisa
 class ET54:
     "ET54 series electronic load"
 
-    def __init__(self, RID, baudrate=9600, eol_r="\r\n", eol_w="\n", delay=0.1, model=None):
+    def __init__(self, RID, baudrate=9600, eol_r="\r\n", eol_w="\n", delay=0.15, model=None):
         """
         RID         pyvisa ressource ID
         baudrate    must match baudrate set in device (default: 9600)
@@ -21,9 +21,9 @@ class ET54:
         rm = pyvisa.ResourceManager()
         self.connection = rm.open_resource(RID)
         self.connection.baud_rate=baudrate
+        self.connection.query_delay = delay
         self.connection.read_termination = eol_r
         self.connection.write_termination = eol_w
-        self.delay = delay  # delay after read/write
 
         tmp = self.connection.query("*IDN?").split()
         self.idn = dict()
@@ -70,7 +70,7 @@ Hardware:       {self.idn['hardware']}
         "Write command to connection and check status"
 
         ret = self.connection.query(command)
-        time.sleep(self.delay)
+        time.sleep(self.connection.query_delay )
         if ret == "Rexecu success":
             return 0
         elif ret == "Rcmd err":
@@ -86,7 +86,7 @@ Hardware:       {self.idn['hardware']}
         "Write command to connection and return answer value"
 
         value = self.connection.query(command)
-        time.sleep(self.delay)
+        time.sleep(self.connection.query_delay)
         if value == "Rcmd err":
             print(f"Command failed ({value})", file=sys.stderr)
             return None
@@ -489,7 +489,6 @@ mode:           {mode}
             self.BATT_cutoff(cutoff)
         if value is not None:
             submode = self.BATT_submode()
-            self.BATT_submode(mode)
             match submode:
                 case "CC":
                     self.BATT_current(value)
