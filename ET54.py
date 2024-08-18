@@ -7,34 +7,45 @@ import sys, time, pyvisa
 class ET54:
     "ET54 series electronic load"
 
-    def __init__(self, RID, model=False):
+    def __init__(self, RID, baudrate=9600, eol_r="\r\n", eol_w="\n", delay=0.1, model=None):
+        """
+        RID         pyvisa ressource ID
+        baudrate    must match baudrate set in device (default: 9600)
+        eol_r       line terminator for reading from device
+        eol_W       line terminator for writing to device
+        delay       delay after read/write operation [s]
+        model       model ID [ET5410|ET5420|ET5410A+|...] 
+                    only required if `*IDN?` does not return a valid ID
+                    e.g. for Mustool branded ET5410A+
+        """
         rm = pyvisa.ResourceManager()
         self.connection = rm.open_resource(RID)
-        self.connection.read_termination = "\r\n"
-        self.connection.write_termination = "\n"
-        #self.connection.baud_rate=9600
-        self.delay = 0.1   # delay after write
+        self.connection.baud_rate=baudrate
+        self.connection.read_termination = eol_r
+        self.connection.write_termination = eol_w
+        self.delay = delay  # delay after read/write
 
         tmp = self.connection.query("*IDN?").split()
         self.idn = dict()
         if len(tmp) == 4:
-            (self.idn['model'],
-            self.idn['SN'],
-            self.idn['firmware'],
-            self.idn['hardware'])  = tmp
+            (
+                self.idn["model"],
+                self.idn["SN"],
+                self.idn["firmware"],
+                self.idn["hardware"],
+            ) = tmp
         elif len(tmp) == 3 and tmp[0] == "XXXXXX":
             # handle Mustool branded device
-            self.idn['model'] = tmp[0]
-            self.idn['SN'] = None
-            self.idn['firmware'] = tmp[1]
-            self.idn['hardware'] = tmp[2]
+            self.idn["model"] = tmp[0]
+            self.idn["SN"] = None
+            self.idn["firmware"] = tmp[1]
+            self.idn["hardware"] = tmp[2]
         else:
             raise RuntimeError(f"Unable to parse device identification: '{tmp}'")
-        if model:
-            # Override model ID. Required for Mustool devices to work
+        if model is not None:
             self.idn["model"] = model
 
-        if self.idn["model"] in ("ET5410", "ET5410A+", "ET5411", "ET5411A+"):
+        if self.idn["model"].upper() in ("ET5410", "ET5410A+", "ET5411", "ET5411A+"):
             self.ch1 = channel("1", self.write, self.query)
         elif self.idn["model"] == "ET5420A+":
             self.ch1 = channel("1", self.write, self.query)
@@ -46,13 +57,13 @@ class ET54:
         self.connection.close()
 
     def __str__(self):
-        ret =  f"""{Model:      self.idn['model']} electronic load
+        ret = f"""Model:          {self.idn['model']}
 Serial:         {self.idn['SN']}
 Firmware:       {self.idn['firmware']}
 Hardware:       {self.idn['hardware']}
 """
         ret += self.ch1.__str__()
-        
+
         return ret
 
     def write(self, command):
@@ -67,12 +78,15 @@ Hardware:       {self.idn['hardware']}
         elif ret == "Rexecu err":
             raise RuntimeError(f"SCPI command '{command}' failed ('{ret}')")
         else:
-            raise RuntimeError(f"SCPI command '{command}' returned unknown response ('{ret}')")
-    
+            raise RuntimeError(
+                f"SCPI command '{command}' returned unknown response ('{ret}')"
+            )
+
     def query(self, command):
         "Write command to connection and return answer value"
 
         value = self.connection.query(command)
+        time.sleep(self.delay)
         if value == "Rcmd err":
             print(f"Command failed ({value})", file=sys.stderr)
             return None
@@ -95,49 +109,63 @@ class channel:
     def __str__(self):
         mode = self.mode()
 
-        ret = f"""Channel:            {self.name}
-Input state:        {self.input()}
-Voltage range:      {self.Vrange()}
-Current range:      {self.Crange()}
-OCP:                {self.OCP()}
-OVP:                {self.OVP()}
-OPP:                {self.OPP()}
-
-mode:               {mode}
-
+        ret = f"""
+Channel {self.name}
+Input state:    {self.input()}
+Voltage range:  {self.Vrange()}
+Current range:  {self.Crange()}
+OCP:            {self.OCP()} A
+OVP:            {self.OVP()} V
+OPP:            {self.OPP()} W
+mode:           {mode}
 """
 
         # XXX:
         match self.mode():
             case "CC":
-                ret += f"Current:           {self.CC_current()}"
+                ret += f"Current:        {self.CC_current()} A"
             case "CV":
-                ret += f"Voltage:           {self.CV_voltage()}"
+                ret += f"Voltage:        {self.CV_voltage()} V"
             case "CP":
-                ret += f"Power:             {self.CP_power()}"
+                ret += f"Power:          {self.CP_power()} W"
             case "CR":
-                ret += f"Resistance:        {self.CP_resistance()}"
+                ret += f"Resistance:     {self.CP_resistance()} Ω"
             case "CCCV":
-                ret += f"Current:           {self.CCVC_current()}"
-                ret += f"Voltage:           {self.CCCV_voltage()}"
+                ret += f"Current:        {self.CCVC_current()} A"
+                ret += f"Voltage:        {self.CCCV_voltage()} V"
             case "CRCV":
-                ret += f"Resistance:        {self.CRCV_resistance()}"
-                ret += f"Voltage:           {self.CRCV_voltage()}"
+                ret += f"Resistance:     {self.CRCV_resistance()} Ω"
+                ret += f"Voltage:        {self.CRCV_voltage()} V"
             case "LED":
-                ret += f"Current:           {self.LED_current()}"
-                ret += f"Voltage:           {self.LED_voltage()}"
-                ret += f"Coefficient:       {self.LED_coefficient()}"
+                ret += f"Current:        {self.LED_current()} A"
+                ret += f"Voltage:        {self.LED_voltage()} V"
+                ret += f"Coefficient:    {self.LED_coefficient()}"
             case "SHOR":
                 pass
             case "BATT":
-                pass
+                submode = self.BATT_submode()
+                cutoff = self.BATT_cutoff()
+                ret += f"submode:        {submode}\n"
+                ret += f"cutoff:         {cutoff}\n"
+                if submode == "CC":
+                        ret += f"current:        {self.BATT_current()} A\n"
+                elif submode == "CR":
+                        ret += f"resistance      {self.BATT_resistance()} Ω\n"
+                if cutoff == "Voltage":
+                    ret += f"cutoff_value:   {self.BATT_cutoff_value()} V\n"
+                elif cutoff == "Time":
+                    ret += f"cutoff_value:   {self.BATT_cutoff_value()} s\n"
+                elif cutoff == "Energy":
+                    ret += f"cutoff_value:   {self.BATT_cutoff_value()} Wh\n"
+                elif cutoff == "Capacity":
+                    ret += f"cutoff_value:   {self.BATT_cutoff_value()} Ah\n"
             case "TRAN":
                 pass
             case "LIST":
                 pass
         return ret
-    
-    ############################################################ 
+
+    ############################################################
     # input state
 
     def input(self, value=None):
@@ -147,7 +175,7 @@ mode:               {mode}
             if value.upper() in ("ON", "OFF"):
                 self.write(f"Ch{self.name}:SW {value}")
             else:
-                raise RuntimeError(f"invaliid input state '{value}'")
+                raise RuntimeError(f"invalid input state '{value}'")
         return self.query(f"Ch{self.name}:SW?")
 
     def on(self):
@@ -158,18 +186,32 @@ mode:               {mode}
         "turn input off"
         self.write(f"Ch{self.name}:SW OFF")
 
-    ############################################################ 
+    ############################################################
     # mode and ranges
 
     def mode(self, mode=None):
         "get/set channel mode (CC|CV|CP|CR|CCCV|CRCV|TRAN|LIST|SHOR|BATT|LED)"
-        
+
         if mode is not None:
             mode = mode.upper()
-            if mode in ("CC", "CV", "CP", "CR", "CCCV", "CRCV", "TRAN", "LIST", "SHOR", "BATT", "LED"):
+            if mode in (
+                "CC",
+                "CV",
+                "CP",
+                "CR",
+                "CCCV",
+                "CRCV",
+                "TRAN",
+                "LIST",
+                "SHOR",
+                "BATT",
+                "LED",
+            ):
                 self.write(f"Ch{self.name}:MODE {mode}")
             else:
-                raise ValueError(f"Mode must be in ['CC', 'CV', 'CP', 'CR', 'CCCV', 'CRCV', 'TRAN', 'LIST', 'SHOR', 'BATT', 'LED']")
+                raise ValueError(
+                    f"Mode must be in ['CC', 'CV', 'CP', 'CR', 'CCCV', 'CRCV', 'TRAN', 'LIST', 'SHOR', 'BATT', 'LED']"
+                )
         return self.query(f"Ch{self.name}:MODE?")
 
     def Vrange(self, Vrange=None):
@@ -181,7 +223,7 @@ mode:               {mode}
             else:
                 raise ValueError(f"Voltage range must be 'high' or 'low'")
         return self.query(f"LOAD{self.name}:VRANGE?")
-    
+
     def Crange(self, Crange=None):
         "get/set current range to (high|low)"
 
@@ -191,33 +233,32 @@ mode:               {mode}
             else:
                 raise ValueError(f"current range must be 'high' or 'low'")
         return self.query(f"LOAD{self.name}:CRANGE?")
-    
 
-    ############################################################ 
+    ############################################################
     # protection
-    
+
     def OVP(self, value=None):
         "get/set OVP voltage [V]"
 
         if value is not None:
             self.write(f"VOLT{self.name}:VMAX {value}")
-        return  _tofloat(self.query(f"VOLT{self.name}:VMAX?"))
+        return _tofloat(self.query(f"VOLT{self.name}:VMAX?"))
 
     def OCP(self, value=None):
         "get/set OCP current [A]"
 
         if value is not None:
             self.write(f"CURR{self.name}:IMAX {value}")
-        return  _tofloat(self.query(f"CURR{self.name}:IMAX?"))
+        return _tofloat(self.query(f"CURR{self.name}:IMAX?"))
 
     def OPP(self, value=None):
         "get/set OPP power [W]"
-        
+
         if value is not None:
             self.write(f"POWE{self.name}:PMAX {value}")
-        return  _tofloat(self.query(f"POWE{self.name}:PMAX?"))
-    
-    ############################################################ 
+        return _tofloat(self.query(f"POWE{self.name}:PMAX?"))
+
+    ############################################################
     # CC mode
 
     def CC_mode(self, current=None):
@@ -252,10 +293,10 @@ mode:               {mode}
         if voltage is not None:
             self.write(f"VOLT{self.name}:CV {voltage}")
         return _tofloat(self.query(f"VOLT{self.name}:CV?"))
-    
+
     ############################################################
     # CP mode
-    
+
     def CP_mode(self, power=None):
         """Put instrument into constant power (CP) mode
         Optionally set power"""
@@ -273,7 +314,7 @@ mode:               {mode}
 
     ############################################################
     # CR mode
-    
+
     def CR_mode(self, resistance=None):
         "Put instrument into constant resistance (CR) mode"
 
@@ -288,7 +329,6 @@ mode:               {mode}
             self.write(f"RESI{self.name}:CR {resistance}")
         return _tofloat(self.query(f"RESI{self.name}:CR?"))
 
-
     ############################################################
     # CC+CV mode
 
@@ -301,21 +341,21 @@ mode:               {mode}
             self.CCCV_current(current)
         if voltage is not None:
             self.CCCV_voltage(voltage)
-    
+
     def CCCV_current(self, current=None):
         "get/set the current value for CC+CV mode"
 
         if current is not None:
             self.write(f"CURR{self.name}:CCCV {current}")
         return _tofloat(self.query(f"CURR{self.name}:CCCV?"))
-    
+
     def CCCV_voltage(self, voltage=None):
         "get/set the voltage value for CC+CV mode [V]"
 
         if voltage is not None:
             self.write(f"VOLT{self.name}:CCCV {voltage}")
         return _tofloat(self.query(f"VOLT{self.name}:CCCV?"))
-    
+
     ############################################################
     # CR+CV mode
 
@@ -328,7 +368,7 @@ mode:               {mode}
             self.CRCV_voltage(voltage)
         if resistance is not None:
             self.CRCV_resistance(resistance)
-    
+
     def CRCV_resistance(self, resistance=None):
         "get/set the current value for CR+CV mode [A]"
 
@@ -392,97 +432,178 @@ mode:               {mode}
     ############################################################
     # battery mode
 
-    def BATTERY_mode(self, mode=None, resistance=None, current=None,
-                     cutoff=None, cutoff_value=None):
-        """Put instrument into BATTERY mode
-       
-        Battery mode supports two different operation modes (CC and CR) and
-        four cutoff conditions that govern when the load will turn off:
+    def BATT_mode(self, mode=None, value=None, cutoff=None, cutoff_value=None):
+        """Put instrument into BATT mode
+
+        Battery mode supports two different operation (sub)modes (CC and CR)
+        and four cutoff conditions that govern when the load will turn off:
 
         mode:       {CC|CR}
 
-        cutoff:     V: voltage
+        value:      current value [A] (CC mode)
+                      or
+                    resistance value [Ω] (CR mode)
+                    
+                    If `cutoff == 'V'` AND `mode == 'CC'`: 
+                        list of up to 3 current values that
+                        are set once the respective cutoff_value
+                        has been reached.
+
+        cutoff:     type of cutoff condition. One of
+
+                    V: voltage
                     T: time
                     E: energy
                     C: capacity
 
-        current:    CC current value for CC mode
-
-        resistance: resistance value for CR mode
-        
         cutoff_value:
                     Value(s) at which the load is turned off or switches to a
                     different current.
 
-                    Depending on the cutoff mode, this is one of the follwoing.
-                    
-                    For `cutoff={T|E|C}`: a single float defining the cutoff-value:
-
-                        time [s]
-                        energy [Wh]
+                    Most of the time, a single float defining the cutoff-value:
+                        
+                        Voltage [V]
+                        Time [s]
+                        Energy [Wh]
                         Capacity [Ah]
 
-                    For `cutoff=V`: a list of three tupples, each of which
-                    contains a (current, voltage) pair indicating a current to
-                    draw until voltage trops to the voltage cutoff.
-                    E.g.:
+                    If  `cutoff == 'V'` AND `mode == 'CC'`: 
+                        A list of up to three voltage cutoffs that
+                        trigger switching to the next current value once reached
+                        
+                        E.g.:
+                        value=[2.0, 1.5, 1.0]
+                        cutoff_value=[15, 12, 10]
 
-                    [
-                        (2.00, 15.00),  # 2.00A until we reach 15.00V
-                        (1.50, 12.00),  # 1.50A until we reach 12.00V
-                        (1.00, 10.00),  # 1.0ßA until we reach 10.00V and turn off
-                    ]
-                    
+                        Current     Voltage     Description
+                        ---------------------------------------------------
+                        2.0         15.0,       2.0A if V > 15.0V
+                        1.5         12.0,       1.5A if V > 12.0V
+                        1.0         10.0,       1.0A if V > 10.0V then off
         """
 
         self.write(f"Ch{self.name}:MODE BATT")
         if mode is not None:
-            if mode.upper() in ("CC", "CV"):
-                self.write("BATT:MODE {mode}")
+            self.BATT_submode(mode)
+        if cutoff is not None:
+            self.BATT_cutoff(cutoff)
+        if value is not None:
+            submode = self.BATT_submode()
+            self.BATT_submode(mode)
+            match submode:
+                case "CC":
+                    self.BATT_current(value)
+                case "CR":
+                    self.BATT_resistance(value)
+                case _:
+                    raise ValueError(f"Invalid BATT submode '{submode}'.")
+        if cutoff_value is not None:
+            self.BATT_cutoff_value(cutoff_value)
+        
+    def BATT_submode(self, mode=None):
+        "get/set BATTERY submode (CC|CR)"
+
+        if mode is not None:
+            if mode.upper() in ("CC", "CR"):
+                self.write(f"BATT{self.name}:MODE {mode}")
             else:
                 raise RuntimeError("Invalid battery discharge mode '{mode}'.")
+        return self.query(f"BATT{self.name}:MODE?")
+
+    def BATT_current(self, current=None):
+        "get/set BATTERY mode CC current"
+
+        cutoff = self.BATT_cutoff()
+        if current is not None:
+            if cutoff == "Voltage":
+                if isinstance(current, (int, float)):
+                    current = [current]
+                if isinstance(current, (list, tuple)) and 0 < len(current) < 4 :
+                    current.extend([current[-1]] * (3-len(current)) )
+                else:
+                    raise ValueError(f"Wrong number of arguments. Expected up to 3, got {len(current)}.")
+                self.write(f"CURR{self.name}:BCC1 {current[0]}")
+                self.write(f"CURR{self.name}:BCC2 {current[1]}")
+                self.write(f"CURR{self.name}:BCC3 {current[2]}")
+            else:
+                self.write(f"CURR{self.name}:BCC {current}")
+        if cutoff == "Voltage":
+
+            return [
+                        _tofloat(self.query(f"CURR{self.name}:BCC1?")),
+                        _tofloat(self.query(f"CURR{self.name}:BCC2?")),
+                        _tofloat(self.query(f"CURR{self.name}:BCC3?")),
+                    ]
+        else:
+            return _tofloat(self.query(f"CURR{self.name}:BCC?"))
+
+    def BATT_resistance(self, resistance=None):
+        "get/set BATTERY mode CR resistance"
+
+        if resistance is not None:
+            self.write(f"RESI{self.name}:BCR {resistance}")
+        return _tofloat(self.query(f"RESI{self.name}:BCR?"))
+
+    def BATT_cutoff(self, cutoff=None):
+        """get/set BATTERY mode cutoff type
+        
+        Uses single letters for setting but will return
+        words:
+        
+        set get
+        ---------------
+        V   Voltage [V]
+        T   Time [s]
+        E   Energy [Wh]
+        C   Capacity [Ah]
+        """
+
         if cutoff is not None:
-            if cutoff.upper() in ("V", "T", "C", "E"):
-                self.write(f"BATT:BCUT ")
-   
-    def BATTCC_currents(self):
-        "return discharge currents"
+            self.write(f"BATT{self.name}:BCUT {cutoff}")
+        return self.query(f"BATT{self.name}:BCUT?")
 
-        return (
-            self.query(f"CURR:BCC1?"),
-            self.query(f"CURR:BCC1?"),
-            self.query(f"CURR:BCC1?"),
-            )
+    def BATT_cutoff_value(self, value=None):
+        "get/set BATTERY mode cutoff value"
 
-    def BATTCC_current(self, I):
-        "set the three discharge currents for Battery CC mode"
+        cutoff = self.BATT_cutoff()
+        if value is not None:
+            match cutoff:
+                case "Voltage":
+                    if isinstance(value, (int, float)):
+                        value = [value]
+                    if isinstance(value, (list, tuple)) and 0 < len(value) < 4 :
+                        value.extend([value[-1]] * (3-len(value)) )
+                    else:
+                        raise ValueError(f"Wrong number of arguments. Expected up to 3, got {len(current)}.")
+                    self.write(f"VOLT{self.name}:BCC1 {value[0]}")
+                    self.write(f"VOLT{self.name}:BCC2 {value[1]}")
+                    self.write(f"VOLT{self.name}:BCC3 {value[2]}")
+                case "Time":
+                    self.write(f"TIME{self.name}:BTT {value}")
+                case "Capacity":
+                    self.write(f"BATT{self.name}:BTC {value}")
+                case "Energy":
+                    self.write(f"BATT{self.name}:BTE {value}")
 
-        if len(I) != 3:
-            raise RuntimError("Three discharge currents must be supplied.")
-        else:
-            self.write(f"CURR:BCC1 {I[0]}")
-            self.write(f"CURR:BCC2 {I[1]}")
-            self.write(f"CURR:BCC3 {I[2]}")
-
-    def BATTCC_voltages(self):
-        "return cutoff currents"
-
-        return (
-            self.query(f"VOLT:BCC1?"),
-            self.query(f"VOLT:BCC1?"),
-            self.query(f"VOLT:BCC1?"),
-            )
-
-    def BATTCC_Voltage(self, V):
-        "set the three cutoff voltages for Battery CC mode"
-
-        if len(I) != 3:
-            raise RuntimError("Three cutoff voltages must be supplied.")
-        else:
-            self.write(f"VOLT:BCC1 {V[0]}")
-            self.write(f"VOLT:BCC2 {V[1]}")
-            self.write(f"VOLT:BCC3 {V[2]}")
-    
+        match cutoff: 
+            case "Voltage":
+                submode = self.query(f"BATT{self.name}:MODE?")
+                if submode == "CC":
+                    return [
+                            _tofloat(self.query(f"VOLT{self.name}:BCC1?")),
+                            _tofloat(self.query(f"VOLT{self.name}:BCC2?")),
+                            _tofloat(self.query(f"VOLT{self.name}:BCC3?")),
+                    ]
+                elif submode == "CR":
+                    return self.query(f"CURR{self.name}:BCC?") 
+                else:
+                    raise ValueError(f"Invalid BATT mode cutoff")
+            case "Time":
+                return _tofloat(self.query(f"TIME{self.name}:BTT?"))
+            case "Capacity":
+                return _tofloat(self.query(f"BATT{self.name}:BTC?"))
+            case "Energy":
+                return _tofloat(self.query(f"BATT{self.name}:BTE?"))
 
     ############################################################
     # list mode
@@ -495,27 +616,24 @@ mode:               {mode}
 
     ############################################################
     # transient mode
-    
+
     def TRANSIENT_mode(self):
         "Put instrument into TRANSIENT mode"
         self.write(f"Ch{self.name}:MODE TRAN")
 
     # XXX: to be implemented
 
-    
     ############################################################
     # Qualifiction test mode
-    
-    # XXX: to be implemented
 
+    # XXX: to be implemented
 
     ############################################################
     # Trigger support
-    
+
     # XXX: to be implemented
 
-
-    ############################################################ 
+    ############################################################
     # measuring
 
     def read_voltage(self):
@@ -547,12 +665,11 @@ def _tofloat(value):
         value = value[1:]
     return float(value)
 
+
 def _tofloats(value):
     "strip leading 'R' split and convert all to float"
-    
+
     if value.startswith("R"):
         value = value[1:].split()
 
     return [float(x) for x in value]
-
-

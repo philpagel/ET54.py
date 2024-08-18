@@ -8,9 +8,10 @@ This *should* work with all of the following devices:
 
 * ET5410
 * ET5411
+* ET5420
 * ET5410A+
-* ET5420A+
 * ET5411A+
+* ET5420A+
 
 Testing was carried out on my ET5410A+. However, I have no access to any of the
 other models. If you own one of them and are willing to do some testing, please
@@ -43,12 +44,14 @@ work, you need to explicitly provide the model ID when initializing the device:
 | CC+CR mode                 | ✓      |
 | Short mode                 | ✓      |  
 | LED mode                   | ✓      |  
-| Battery mode               | —      |  
+| Battery mode               | ✓      |  
 | Transient mode             | —      |  
 | List mode                  | —      |  
 | Qualification test mode    | —      |  
 | Trigger support            | —      |
 | File commands              | —      |
+| Load effect testing        | —      |
+| Remote compensation        | —      |
 
 Basic functions are working and I'm in the process of
 implementing the more involved things.
@@ -116,10 +119,10 @@ or functionality.
 
 E.g. Constant current mode:
 
-    el.CC_mode(2.8)         # switch to CC mode and set current to 2.8A
+    el.ch1.CC_mode(2.8)         # switch to CC mode and set current to 2.8A
 
-    el.CC_curent()          # get CC current setting
-    el.CC_current(1.5)      # set CC current to new value
+    el.ch1.CC_curent()          # get CC current setting
+    el.ch1.CC_current(1.5)      # set CC current to new value
 
 
 ## Reference

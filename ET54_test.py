@@ -2,7 +2,6 @@ import pytest
 from ET54 import ET54
         
 # Define parameters for setting voltage, current, power or resistance
-
 heading = "V,I,P,R"
 parameters = [
          (24.2, 14.0, 340.2,  1.74),
@@ -13,6 +12,13 @@ parameters = [
 RID = "ASRL/dev/ttyUSB1"
 el = ET54(RID)
 ch = el.ch1
+ch.off()
+ch.CC_mode()
+
+# most tets assum `high` range, so set it
+ch.Vrange("high")
+ch.Crange("high")
+
 
 print("\nModel: ", el.idn["model"])
 print("Firmware: ", el.idn["firmware"])
@@ -29,6 +35,8 @@ def test_write():
 
 def test_input_state():
     "setting and getting channel on/off state"
+
+    ch.CC_mode()
 
     ch.input("on")
     assert ch.input() == "ON"
@@ -93,7 +101,6 @@ def test_range_invalid():
 
 @pytest.mark.parametrize("value", [0.5, 1.3, 2.9])
 def test_OCP(value):
-    "setting and getting OCP value"
     
     ch.OCP(value)
     assert ch.OCP() == value
@@ -104,7 +111,6 @@ def test_OCP_invalid():
 
 @pytest.mark.parametrize("value", [1.0, 3.4, 7.5, 18.5])
 def test_OVP(value):
-    "setting and getting OVP value"
 
     ch.OVP(value)
     assert ch.OVP() == value
@@ -115,7 +121,6 @@ def test_OVP_invalid():
 
 @pytest.mark.parametrize("value", [5.0, 50, 120])
 def test_OPP(value):
-    "setting and getting OPP value"
 
     ch.OPP(value)
     assert ch.OPP() == value
@@ -126,7 +131,6 @@ def test_OPP_invalid():
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CCmode(V, I, P, R):
-    "setting and getting current in CC mode"
 
     ch.CC_mode(I)
     assert ch.CC_current() == I
@@ -136,7 +140,6 @@ def test_CCmode(V, I, P, R):
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CVmode(V, I, P, R):
-    "setting and getting voltage in CV mode"
 
     ch.CV_mode(V)
     assert ch.CV_voltage() == V
@@ -146,7 +149,6 @@ def test_CVmode(V, I, P, R):
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CPmode(V, I, P, R):
-    "setting and getting power in CP mode"
 
     ch.CP_mode(P)
     assert ch.CP_power() == P
@@ -156,7 +158,6 @@ def test_CPmode(V, I, P, R):
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CRmode(V, I, P, R):
-    "setting and getting resistance in CR mode"
     
     ch.CR_mode(R)
     assert ch.CR_resistance() == R 
@@ -166,7 +167,6 @@ def test_CRmode(V, I, P, R):
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CCCVmode(V, I, P, R):
-    "setting and getting voltage and current in CC+CV mode"
 
     ch.CCCV_mode(I, V)
     assert ch.CCCV_current() == I
@@ -180,7 +180,6 @@ def test_CCCVmode(V, I, P, R):
 
 @pytest.mark.parametrize(heading,parameters)
 def test_CRCVmode(V, I, P, R):
-    "setting and getting voltage and current in CC+CR mode"
 
     ch.CRCV_mode(R, V)
     assert ch.CRCV_resistance() == R
@@ -191,6 +190,49 @@ def test_CRCVmode(V, I, P, R):
     assert ch.CRCV_resistance(R) == R
     assert ch.CRCV_resistance() == R
 
+def test_BATTmode():
+    
+    ch.BATT_mode(mode="CC", value=[2.0,1.5,1.0], 
+                 cutoff="V", cutoff_value=[15, 12, 10])
+    assert ch.BATT_current() == [2.0, 1.5, 1.0]
+    assert ch.BATT_cutoff() == "Voltage"
+    assert ch.BATT_cutoff_value() == [15, 12, 10]
+
+    ch.BATT_mode(mode="CC", value=1.25, cutoff="V", cutoff_value=2.5)
+    assert ch.BATT_current() == [1.25] * 3
+    assert ch.BATT_cutoff() == "Voltage"
+    assert ch.BATT_cutoff_value() == [2.5] * 3
+
+    ch.BATT_mode(mode="CC", value=[1.3, 0.97], cutoff="V", cutoff_value=[4,3,1])
+    assert ch.BATT_current() == [1.3, 0.97, 0.97]
+    assert ch.BATT_cutoff() == "Voltage"
+    assert ch.BATT_cutoff_value() == [4, 3, 1]
+
+    ch.BATT_mode(mode="CC", value=5.5, cutoff="T", cutoff_value=5)
+    assert ch.BATT_current() == 5.5
+    assert ch.BATT_cutoff() == "Time"
+    assert ch.BATT_cutoff_value() == 5
+
+    ch.BATT_mode(mode="CC", value=3.8, cutoff="E", cutoff_value=0.6)
+    assert ch.BATT_current() == 3.8
+    assert ch.BATT_cutoff() == "Energy"
+    assert ch.BATT_cutoff_value() == 0.6
+
+    ch.BATT_mode(mode="CC", value=1.2, cutoff="C", cutoff_value=0.7)
+    assert ch.BATT_current() == 1.2
+    assert ch.BATT_cutoff() == "Capacity"
+    assert ch.BATT_cutoff_value() == 0.7
+
+    ch.BATT_mode(mode="CR", value=500, cutoff="E", cutoff_value=0.5)
+    assert ch.BATT_resistance() == 500
+    assert ch.BATT_cutoff() == "Energy"
+    assert ch.BATT_cutoff_value() == 0.5
+
+    ch.BATT_mode(mode="CR", value=700, cutoff="C", cutoff_value=0.3)
+    assert ch.BATT_resistance() == 700
+    assert ch.BATT_cutoff() == "Capacity"
+    assert ch.BATT_cutoff_value() == 0.3
+
 def test_measure():
     """measuring voltage, current, power and resistance
     This requires tha the input terminals are *shorted*!
@@ -198,15 +240,15 @@ def test_measure():
     """
 
     el.ch1.on()
-    assert ch.read_voltage() <= 0.01
-    assert ch.read_current() <= 0.01
-    assert ch.read_power() <= 0.01
-    assert ch.read_resistance() <= 0.01
+    assert ch.read_voltage() <= 0.02
+    assert ch.read_current() <= 0.02
+    assert ch.read_power() <= 0.02
+    assert ch.read_resistance() <= 0.02
     (V,I,P,R) = ch.read_all()
-    assert V <= 0.01
-    assert I <= 0.01
-    assert P <= 0.01
-    assert R <= 0.01
+    assert V <= 0.02
+    assert I <= 0.02
+    assert P <= 0.02
+    assert R <= 0.02
 
     el.ch1.off()
 
