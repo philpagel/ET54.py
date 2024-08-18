@@ -233,6 +233,32 @@ def test_BATTmode():
     assert ch.BATT_cutoff() == "Capacity"
     assert ch.BATT_cutoff_value() == 0.3
 
+@pytest.mark.parametrize(
+        "mode,trigmode,value,width",[
+            ("CC", "COUT", (1, 3.8), (50, 100)),
+            ("CC", "PULS", (2, 8), (100, 200)),
+            ("CC", "TRIG", (3, 9.5), (500, 250)),
+            ("CC", "COUT", (7.5, 11.7), (2000, 500)),
+            ("CV", "COUT", (1, 3.8), (50, 100)),
+            ("CV", "PULS", (2, 8), (100, 200)),
+            ("CV", "TRIG", (3, 9.5), (500, 250)),
+            ("CV", "COUT", (7.5, 11.7), (2000, 500)),
+            ]
+        )
+def testTRANSIENTmode(mode, trigmode, value, width):
+    "test TRANSIENT mode setup"
+
+    ch.TRANSIENT_mode(mode=mode, trigmode=trigmode, value=value, width=width)
+    assert ch.TRANSIENT_submode() == mode
+    assert ch.TRANSIENT_trigmode() == trigmode
+    if mode == "CC":
+        assert ch.TRANSIENT_current() == value
+    else:
+        assert ch.TRANSIENT_voltage() == value
+    assert ch.TRANSIENT_width() == width
+
+
+
 def test_measure():
     """measuring voltage, current, power and resistance
     This requires tha the input terminals are *shorted*!

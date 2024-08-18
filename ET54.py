@@ -160,7 +160,15 @@ mode:           {mode}
                 elif cutoff == "Capacity":
                     ret += f"cutoff_value:   {self.BATT_cutoff_value()} Ah\n"
             case "TRAN":
-                pass
+                submode = self.TRANSIENT_submode()
+                ret += f"submode:        {submode}\n"
+                ret += f"trigmode:       {self.TRANSIENT_trigmode()}\n"
+                if submode == "CC":
+                    ret += f"current:        {self.TRANSIENT_current()} V\n"
+                elif submode == "CV":
+                    ret += f"voltage:        {self.TRANSIENT_voltage()} A\n"
+                ret += f"pulse width:    {self.TRANSIENT_width()} ms\n"
+                
             case "LIST":
                 pass
         return ret
@@ -190,7 +198,10 @@ mode:           {mode}
     # mode and ranges
 
     def mode(self, mode=None):
-        "get/set channel mode (CC|CV|CP|CR|CCCV|CRCV|TRAN|LIST|SHOR|BATT|LED)"
+        """get/set channel mode (CC|CV|CP|CR|CCCV|CRCV|TRAN|LIST|SHOR|BATT|LED)
+        
+        For setting up different modes better use the `*_mode()` methods that
+        allow configuring each mode at the same time."""
 
         if mode is not None:
             mode = mode.upper()
@@ -592,7 +603,7 @@ mode:           {mode}
                             _tofloat(self.query(f"VOLT{self.name}:BCC1?")),
                             _tofloat(self.query(f"VOLT{self.name}:BCC2?")),
                             _tofloat(self.query(f"VOLT{self.name}:BCC3?")),
-                    ]
+                            ]
                 elif submode == "CR":
                     return self.query(f"CURR{self.name}:BCC?") 
                 else:
@@ -605,20 +616,109 @@ mode:           {mode}
                 return _tofloat(self.query(f"BATT{self.name}:BTE?"))
 
     ############################################################
+    # transient mode
+
+    def TRANSIENT_mode(self, mode=None, trigmode=None, value=None, width=None):
+        """Put instrument into TRANSIENT mode (aka Dynamic mode)
+       
+        The load will switch between two states A and B depending on mode 
+        and trigmode
+
+        mode:       sub-mode (CC|CV)
+        trigmode:   trigger setting (COUT|TRIG|PULS)
+        value:      values for transient states (low and high) in V or A,
+                    depending on mode
+        width:       Pulse width for the two states [ms]
+        """
+        
+        self.write(f"Ch{self.name}:MODE TRAN")
+        if mode is not None:
+            self.TRANSIENT_submode(mode)
+        if trigmode is not None:
+            self.TRANSIENT_trigmode(trigmode)
+        if value is not None:
+            submode = self.TRANSIENT_submode()
+            if submode == "CC":
+                self.TRANSIENT_current(value)
+            elif submode == "CV":
+                self.TRANSIENT_voltage(value)
+            else:
+                raise ValueError(f"Invalid TRANSIENT submode {submode}")
+        if width is not None:
+            self.TRANSIENT_width(width)
+           
+    def TRANSIENT_submode(self, mode=None):
+        "get/set TRANSIENT sub-mode (CC|CV)"
+        
+        if mode is not None:
+            if mode in ["CC", "CV"]:
+                self.write(f"TRAN{self.name}:STATE {mode}")
+            else:
+                raise ValueError(f"Invalid TRANSIENT sub-mode '{mode}'.")
+        return self.query(f"TRAN{self.name}:STATE?")
+    
+    def TRANSIENT_trigmode(self, trigmode=None):
+        "get/set TRANSIENT sub-mode (COUT|PULS|TRIG)"
+        
+        if trigmode is not None:
+            if trigmode in ["COUT", "PULS", "TRIG"]:
+                self.write(f"TRAN{self.name}:MODE {trigmode}")
+            else:
+                raise ValueError(f"Invalid TRANSIENT trigger mode '{trigmode}'")
+        return self.query(f"TRAN{self.name}:MODE?")
+
+    def TRANSIENT_current(self, current=None):
+        """get/set TRANSIENT currents (CC mode)
+        
+        current:    list of two current values: [I_A, I_B]
+        """
+
+        if (current is not None) and isinstance(current, (list, tuple)) and (len(current)==2):
+            self.write(f"CURR{self.name}:TA {current[0]}")
+            self.write(f"CURR{self.name}:TB {current[1]}")
+
+        return (
+                _tofloat(self.query(f"CURR{self.name}:TA?")), 
+                _tofloat(self.query(f"CURR{self.name}:TB?")), 
+                )
+    
+
+    def TRANSIENT_voltage(self, voltage=None):
+        """get/set TRANSIENT voltages (CV mode)
+        
+        current:    list of two voltage values: [V_A, V_B]
+        """
+
+        if voltage is not None and isinstance(voltage, (list, tuple)) and len(voltage)==2:
+            self.write(f"VOLT{self.name}:TA {voltage[0]}")
+            self.write(f"VOLT{self.name}:TB {voltage[1]}")
+
+        return (
+                _tofloat(self.query(f"VOLT{self.name}:TA?")), 
+                _tofloat(self.query(f"VOLT{self.name}:TB?")), 
+                )
+
+    def TRANSIENT_width(self, width=None):
+        """get/set TRANSIENT widh [ms]
+
+        time:    list/tuple of two time values: [W_A, W_B]
+        """
+
+        if width is not None and  isinstance(width, (list, tuple)) and len(width)==2:
+            self.write(f"TIME{self.name}:WA {width[0]}")
+            self.write(f"TIME{self.name}:WB {width[1]}")
+
+        return (
+                _tofloat(self.query(f"TIME{self.name}:WA?")), 
+                _tofloat(self.query(f"TIME{self.name}:WB?")), 
+                )
+
+    ############################################################
     # list mode
 
     def LIST_mode(self):
         "Put instrument into LIST mode"
         self.write(f"Ch{self.name}:MODE LIST")
-
-    # XXX: to be implemented
-
-    ############################################################
-    # transient mode
-
-    def TRANSIENT_mode(self):
-        "Put instrument into TRANSIENT mode"
-        self.write(f"Ch{self.name}:MODE TRAN")
 
     # XXX: to be implemented
 

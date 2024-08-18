@@ -51,7 +51,7 @@ work, you need to explicitly provide the model ID when initializing the device:
 | Short mode                 | ✓      |  
 | LED mode                   | ✓      |  
 | Battery mode               | ✓      |  
-| Transient mode             | —      |  
+| Transient mode             | ✓      |  
 | List mode                  | —      |  
 | Qualification test mode    | —      |  
 | Trigger support            | —      |
@@ -151,7 +151,7 @@ variable and use that directly:
 
     ch = el.ch1
     ch.CR_mode(1000)
-    ch..on()
+    ch.on()
 
 ## Mode setup
 
@@ -175,6 +175,27 @@ from it. There are four parameters you can get:
     el.ch1.read_power()
     el.ch1.read_resistance()
 
+## Summary information
+
+You can get all kinds of information form the various methods but if you
+would like to see a human-readable summary of the device and its state, you 
+can use the `__str__` method of the load object. E.g. by printing it:
+
+    >>> print(el)
+    Model:          ET5410A+
+    Serial:         08772385097
+    Firmware:       V1.00.2213.016
+    Hardware:       V1.00.2213.016
+
+    Channel 1
+    Input state:    OFF
+    Voltage range:  HIGH
+    Current range:  HIGH
+    OCP:            42.0 A
+    OVP:            155.0 V
+    OPP:            410.0 W
+    mode:           CC
+    Current:        2.0 A
 
 
 ## Some principles
