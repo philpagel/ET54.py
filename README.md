@@ -115,6 +115,67 @@ Here is a little example script that illustrates how things work:
     # turn off the load channel
     el.ch1.off()
 
+## Some more details
+
+### Connecting
+    
+This is how you connect to the load:
+
+    from ET54 import ET54
+    el = ET54("ASRL/dev/ttyUSB1")
+
+Of course, you need to adapt it to the right device for your case.
+
+If you encounter problems, you can try to tweak a few parameters:
+
+| parameter | Description                                         |
+|---------- |---------------------------------------------------- |
+| baudrate  | must match baudrate set in device (default: 9600)   |
+| eol_r     | line terminator for reading from device             |
+| eol_W     | line terminator for writing to device               |
+| delay     | delay after read/write operation [s]                |
+| model     | model ID [ET5410/ET5420/ET541A+/...] <br> only required if `*IDN?` does not return a valid ID e.g. for Mustool branded ET5410A+ |
+
+## Channels
+
+The load object itself does not do many exciting things. For the actual work,
+it has one or two channels (depending on your model). You can access them like
+so:
+
+    el.ch1.CR_mode(1000)
+    el.ch1.on()
+
+Admittedly, most models only have one channel and the extra `.ch` part can get
+annoying. To make things a little shorter, you can assign the channel to a
+variable and use that directly:
+
+    ch = el.ch1
+    ch.CR_mode(1000)
+    ch..on()
+
+## Mode setup
+
+All `*_mode()` methods will put the load into the respective mode and optionally
+accept all relevant parameters so you don't have to do the configuration separately. 
+E.g. for CCCV mode:
+
+    el.ch1.CCCV_mode(current=1.5, voltage=24)
+
+or just 
+    
+    el.ch1.CCCV_mode(1.5, 24)
+
+## Reading data
+
+Once the load is set up and running, you can start reading measurement data
+from it. There are four parameters you can get:
+
+    el.ch1.read_voltage()
+    el.ch1.read_current()
+    el.ch1.read_power()
+    el.ch1.read_resistance()
+
+
 
 ## Some principles
 
@@ -129,7 +190,6 @@ E.g. Constant current mode:
 
     el.ch1.CC_curent()          # get CC current setting
     el.ch1.CC_current(1.5)      # set CC current to new value
-
 
 ## Reference
 
