@@ -114,6 +114,10 @@ Hardware:       {self.idn['hardware']}
         """
         self.write("SYST:LOCA")
 
+    def fan(self):
+        "return fan state"
+        return self.query("SELF:FAN?")
+
 class channel:
     "Electronic load channel"
 
