@@ -657,6 +657,27 @@ trigger:        {self.trigger_mode()}
             case "Energy":
                 return _tofloat(self.query(f"BATT{self.name}:BTE?"))
 
+    def BATT_capacity():
+        "get the battery discharge capacity value [Ah]"
+        return self.query(f"BATT{self.name}:CAPA?")
+    
+    def BATT_energy():
+        "get the battery discharge energy value [Wh]"
+        return self.query(f"BATT{self.name}:CAPA?")
+
+    def BATT_cutoff_level(self, level=None):
+        """get/set cutoff level (1|2|3)
+
+        only works in CC mode with voltage cutoff. 
+        Will force the 1st/2nd/3rd cutoff level without requiring
+        the voltage to drop to the respective cutoff value.
+        Level 3 is the default state!
+        """
+
+        if level is not None:
+            self.write(f"BATT{self.name}:BAEN {level}")
+        return _toint(self.query(f"BATT{self.name}:BAEN?"))
+
     ############################################################
     # transient mode
 
@@ -811,13 +832,20 @@ trigger:        {self.trigger_mode()}
 
 
 # support functions
+
+def _toint(value):
+    "strip leading 'R' and convert to int"
+
+    if value.startswith("R"):
+        value = value[1:]
+    return int(value)
+
 def _tofloat(value):
     "strip leading 'R' and convert to float"
 
     if value.startswith("R"):
         value = value[1:]
     return float(value)
-
 
 def _tofloats(value):
     "strip leading 'R' split and convert all to float"
