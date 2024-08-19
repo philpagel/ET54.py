@@ -102,6 +102,13 @@ Hardware:       {self.idn['hardware']}
         "close connection to instument"
         self.connection.close()
 
+    def unlock(self):
+        """unlock the local interface
+
+        After unlocking, buttons on the device work again.
+        Sending a SCPI command will lock the device again.
+        """
+        self.write("SYST:LOCA")
 
 class channel:
     "Electronic load channel"
