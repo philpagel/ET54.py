@@ -309,6 +309,18 @@ trigger:        {self.trigger_mode()}
             self.write(f"POWE{self.name}:PMAX {value}")
         return _tofloat(self.query(f"POWE{self.name}:PMAX?"))
 
+    def protection(self):
+        """return protection state
+        
+        NONE    No protection has been triggered
+        OV      OCP triggered
+        OC      OCP triggered
+        OP      OPP triggered
+        LRV     reverse voltage protection triggered
+        OT      Overtemp protection triggered
+        """
+        return self.query(f"LOAD{self.name}:ABNO?")
+
     ############################################################
     # CC mode
 
