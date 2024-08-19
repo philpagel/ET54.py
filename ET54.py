@@ -1,5 +1,10 @@
 """
 Controlling East Tester ET54 series electronic loads
+
+should work with models ET5410, ET5420, ET5411, ET5410A+, ET5420A+, ET5411A+
+and maybe even ET5406A+, Et5407A+
+
+tested on ET5410A+
 """
 
 import sys, time, pyvisa
@@ -168,7 +173,7 @@ trigger:        {self.trigger_mode()}
                     ret += f"current:        {self.TRANSIENT_current()} V\n"
                 elif submode == "CV":
                     ret += f"voltage:        {self.TRANSIENT_voltage()} A\n"
-                ret += f"pulse width:    {self.TRANSIENT_width()} ms\n"
+                ret += f"pulse width:    {self.TRANSIENT_width()} s\n"
                 
             case "LIST":
                 pass
@@ -542,16 +547,11 @@ trigger:        {self.trigger_mode()}
 
     def BATT_current(self, current=None):
         "get/set BATTERY mode CC current"
-
+        
         cutoff = self.BATT_cutoff()
         if current is not None:
             if cutoff == "Voltage":
-                if isinstance(current, (int, float)):
-                    current = [current]
-                if isinstance(current, (list, tuple)) and 0 < len(current) < 4 :
-                    current.extend([current[-1]] * (3-len(current)) )
-                else:
-                    raise ValueError(f"Wrong number of arguments. Expected up to 3, got {len(current)}.")
+                current = value_extend(current, 3)
                 self.write(f"CURR{self.name}:BCC1 {current[0]}")
                 self.write(f"CURR{self.name}:BCC2 {current[1]}")
                 self.write(f"CURR{self.name}:BCC3 {current[2]}")
@@ -559,11 +559,11 @@ trigger:        {self.trigger_mode()}
                 self.write(f"CURR{self.name}:BCC {current}")
         if cutoff == "Voltage":
 
-            return [
+            return (
                         _tofloat(self.query(f"CURR{self.name}:BCC1?")),
                         _tofloat(self.query(f"CURR{self.name}:BCC2?")),
                         _tofloat(self.query(f"CURR{self.name}:BCC3?")),
-                    ]
+                        )
         else:
             return _tofloat(self.query(f"CURR{self.name}:BCC?"))
 
@@ -599,12 +599,7 @@ trigger:        {self.trigger_mode()}
         if value is not None:
             match cutoff:
                 case "Voltage":
-                    if isinstance(value, (int, float)):
-                        value = [value]
-                    if isinstance(value, (list, tuple)) and 0 < len(value) < 4 :
-                        value.extend([value[-1]] * (3-len(value)) )
-                    else:
-                        raise ValueError(f"Wrong number of arguments. Expected up to 3, got {len(current)}.")
+                    value = value_extend(value, 3)
                     self.write(f"VOLT{self.name}:BCC1 {value[0]}")
                     self.write(f"VOLT{self.name}:BCC2 {value[1]}")
                     self.write(f"VOLT{self.name}:BCC3 {value[2]}")
@@ -619,11 +614,11 @@ trigger:        {self.trigger_mode()}
             case "Voltage":
                 submode = self.query(f"BATT{self.name}:MODE?")
                 if submode == "CC":
-                    return [
+                    return (
                             _tofloat(self.query(f"VOLT{self.name}:BCC1?")),
                             _tofloat(self.query(f"VOLT{self.name}:BCC2?")),
                             _tofloat(self.query(f"VOLT{self.name}:BCC3?")),
-                            ]
+                            )
                 elif submode == "CR":
                     return self.query(f"CURR{self.name}:BCC?") 
                 else:
@@ -645,15 +640,15 @@ trigger:        {self.trigger_mode()}
         and trigmode
 
         mode:       sub-mode (CC|CV)
-        trigmode:   trigger setting (COUT|TRIG|PULS)
+        trigmode:   trigger setting (CONT|TRIG|PULS)
         value:      values for transient states (low and high) in V or A,
                     depending on mode
-        width:       Pulse width for the two states [ms]
+        width:      Pulse width for the two states [s]
         """
         
         self.write(f"Ch{self.name}:MODE TRAN")
         if mode is not None:
-            self.TRANSIENT_submode(mode)
+            self.TRANSIENT_submode(mode.upper())
         if trigmode is not None:
             self.TRANSIENT_trigmode(trigmode)
         if value is not None:
@@ -669,8 +664,9 @@ trigger:        {self.trigger_mode()}
            
     def TRANSIENT_submode(self, mode=None):
         "get/set TRANSIENT sub-mode (CC|CV)"
-        
+       
         if mode is not None:
+            mode = mode.upper()
             if mode in ["CC", "CV"]:
                 self.write(f"TRAN{self.name}:STATE {mode}")
             else:
@@ -681,6 +677,9 @@ trigger:        {self.trigger_mode()}
         "get/set TRANSIENT sub-mode (COUT|PULS|TRIG)"
         
         if trigmode is not None:
+            trigmode = trigmode.upper()
+            if trigmode == "CONT":
+                trigmode = "COUT"
             if trigmode in ["COUT", "PULS", "TRIG"]:
                 self.write(f"TRAN{self.name}:MODE {trigmode}")
             else:
@@ -693,9 +692,12 @@ trigger:        {self.trigger_mode()}
         current:    list of two current values: [I_A, I_B]
         """
 
-        if (current is not None) and isinstance(current, (list, tuple)) and (len(current)==2):
-            self.write(f"CURR{self.name}:TA {current[0]}")
-            self.write(f"CURR{self.name}:TB {current[1]}")
+        if (current is not None): 
+            if isinstance(current, (list, tuple)) and (len(current)==2):
+                self.write(f"CURR{self.name}:TA {current[0]}")
+                self.write(f"CURR{self.name}:TB {current[1]}")
+            else:
+                raise ValueError(f"Transient current must be a tuple/list of length 2")
 
         return (
                 _tofloat(self.query(f"CURR{self.name}:TA?")), 
@@ -709,9 +711,12 @@ trigger:        {self.trigger_mode()}
         current:    list of two voltage values: [V_A, V_B]
         """
 
-        if voltage is not None and isinstance(voltage, (list, tuple)) and len(voltage)==2:
-            self.write(f"VOLT{self.name}:TA {voltage[0]}")
-            self.write(f"VOLT{self.name}:TB {voltage[1]}")
+        if voltage is not None:
+            if isinstance(voltage, (list, tuple)) and len(voltage)==2:
+                self.write(f"VOLT{self.name}:TA {voltage[0]}")
+                self.write(f"VOLT{self.name}:TB {voltage[1]}")
+            else:
+                raise ValueError(f"Transient voltage must be a tuple/list of length 2")
 
         return (
                 _tofloat(self.query(f"VOLT{self.name}:TA?")), 
@@ -724,10 +729,12 @@ trigger:        {self.trigger_mode()}
         time:    list/tuple of two time values: [W_A, W_B]
         """
 
-        if width is not None and  isinstance(width, (list, tuple)) and len(width)==2:
-            self.write(f"TIME{self.name}:WA {width[0]}")
-            self.write(f"TIME{self.name}:WB {width[1]}")
-
+        if width is not None:
+            if isinstance(width, (list, tuple)) and len(width)==2:
+                self.write(f"TIME{self.name}:WA {width[0]}")
+                self.write(f"TIME{self.name}:WB {width[1]}")
+            else:
+                raise ValueError(f"Transient widths must be a tuple/list of length 2")
         return (
                 _tofloat(self.query(f"TIME{self.name}:WA?")), 
                 _tofloat(self.query(f"TIME{self.name}:WB?")), 
@@ -792,3 +799,22 @@ def _tofloats(value):
         value = value[1:].split()
 
     return [float(x) for x in value]
+
+def value_extend (x, n):
+    "turn x into list of length n by replicating the last element"
+
+    if isinstance(x, list):
+        pass
+    elif isinstance(x, tuple):
+        x = list(x)
+    elif isinstance(x, (int, float, str)):
+        x = [x]
+    else:
+        raise ValueError(f"x must be in, float, list or tupple not '{type(x)}'")
+    
+    if 0 < len(x) < n+1 :
+        x.extend([x[-1]] * (n-len(x)) )
+    else:
+        raise ValueError(f"Wrong number of arguments. Expected up to {n}, got {len(x)}.")
+    return x
+

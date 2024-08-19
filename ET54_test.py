@@ -199,74 +199,63 @@ def test_CRCVmode(V, I, P, R):
     assert ch.CRCV_resistance(R) == R
     assert ch.CRCV_resistance() == R
 
-def test_BATTmode():
+@pytest.mark.parametrize(
+        "mode,value,cutoff,cutoff_value", [
+            ("CC", (2.0, 1.5, 1.10), "Voltage", (2.0, 1.5, 1.0)),
+            ("CC", 5.5, "Time", 5),
+            ("CC", 3.8, "Energy", 0.6),
+            ("CC", 1.2, "Capacity", 0.7),
+            ("CR", 500, "Energy", 0.5),
+            ("CR", 700, "Capacity", 0.3),
+            ])
+def test_BATTmode(mode, value, cutoff, cutoff_value):
     
-    ch.BATT_mode(mode="CC", value=[2.0,1.5,1.0], 
-                 cutoff="V", cutoff_value=[15, 12, 10])
-    assert ch.BATT_current() == [2.0, 1.5, 1.0]
-    assert ch.BATT_cutoff() == "Voltage"
-    assert ch.BATT_cutoff_value() == [15, 12, 10]
+    ch.BATT_mode(mode=mode, value=value, cutoff=cutoff[0], cutoff_value=cutoff_value)
+    assert ch.BATT_submode() == mode
+    if mode == "CC":
+        assert ch.BATT_current() == value
+    elif mode =="CR":
+        assert ch.BATT_resistance() == value
+    else:
+        raise RuntimeError(f"Invalid submode {mode}.")
+    assert ch.BATT_cutoff() == cutoff
+    assert ch.BATT_cutoff_value() == cutoff_value
+
+def test_BATTmode_expand():
+    "Test the auto expansion of triples"
 
     ch.BATT_mode(mode="CC", value=1.25, cutoff="V", cutoff_value=2.5)
-    assert ch.BATT_current() == [1.25] * 3
-    assert ch.BATT_cutoff() == "Voltage"
-    assert ch.BATT_cutoff_value() == [2.5] * 3
+    assert ch.BATT_current() == (1.25, 1.25, 1.25)
+    assert ch.BATT_cutoff_value() == (2.5, 2.5, 2.5)
 
-    ch.BATT_mode(mode="CC", value=[1.3, 0.97], cutoff="V", cutoff_value=[4,3,1])
-    assert ch.BATT_current() == [1.3, 0.97, 0.97]
-    assert ch.BATT_cutoff() == "Voltage"
-    assert ch.BATT_cutoff_value() == [4, 3, 1]
+    ch.BATT_mode(mode="CC", value=(1.3, 0.97), cutoff="V", cutoff_value=(4.1, 3.7))
+    assert ch.BATT_current() == (1.3, 0.97, 0.97)
+    assert ch.BATT_cutoff_value() == (4.1, 3.7, 3.7)
 
-    ch.BATT_mode(mode="CC", value=5.5, cutoff="T", cutoff_value=5)
-    assert ch.BATT_current() == 5.5
-    assert ch.BATT_cutoff() == "Time"
-    assert ch.BATT_cutoff_value() == 5
-
-    ch.BATT_mode(mode="CC", value=3.8, cutoff="E", cutoff_value=0.6)
-    assert ch.BATT_current() == 3.8
-    assert ch.BATT_cutoff() == "Energy"
-    assert ch.BATT_cutoff_value() == 0.6
-
-    ch.BATT_mode(mode="CC", value=1.2, cutoff="C", cutoff_value=0.7)
-    assert ch.BATT_current() == 1.2
-    assert ch.BATT_cutoff() == "Capacity"
-    assert ch.BATT_cutoff_value() == 0.7
-
-    ch.BATT_mode(mode="CR", value=500, cutoff="E", cutoff_value=0.5)
-    assert ch.BATT_resistance() == 500
-    assert ch.BATT_cutoff() == "Energy"
-    assert ch.BATT_cutoff_value() == 0.5
-
-    ch.BATT_mode(mode="CR", value=700, cutoff="C", cutoff_value=0.3)
-    assert ch.BATT_resistance() == 700
-    assert ch.BATT_cutoff() == "Capacity"
-    assert ch.BATT_cutoff_value() == 0.3
 
 @pytest.mark.parametrize(
         "mode,trigmode,value,width",[
             ("CC", "COUT", (1, 3.8), (50, 100)),
-            ("CC", "PULS", (2, 8), (100, 200)),
-            ("CC", "TRIG", (3, 9.5), (500, 250)),
+            ("cc", "PULS", (2, 8), (100, 200)),
+            ("CC", "Trig", (3, 9.5), (500, 250)),
             ("CC", "COUT", (7.5, 11.7), (2000, 500)),
-            ("CV", "COUT", (1, 3.8), (50, 100)),
-            ("CV", "PULS", (2, 8), (100, 200)),
-            ("CV", "TRIG", (3, 9.5), (500, 250)),
-            ("CV", "COUT", (7.5, 11.7), (2000, 500)),
+            ("cV", "COUT", (2.1, 3.9), (50, 100)),
+            ("Cv", "PULS", (2.2, 8.1), (100, 200)),
+            ("CV", "TriG", (3.4, 9.4), (500, 250)),
+            ("CV", "COuT", (7.3, 11.2), (2000, 500)),
             ]
         )
 def testTRANSIENTmode(mode, trigmode, value, width):
     "test TRANSIENT mode setup"
 
     ch.TRANSIENT_mode(mode=mode, trigmode=trigmode, value=value, width=width)
-    assert ch.TRANSIENT_submode() == mode
-    assert ch.TRANSIENT_trigmode() == trigmode
+    assert ch.TRANSIENT_submode() == mode.upper()
+    assert ch.TRANSIENT_trigmode() == trigmode.upper()
     if mode == "CC":
         assert ch.TRANSIENT_current() == value
     else:
         assert ch.TRANSIENT_voltage() == value
     assert ch.TRANSIENT_width() == width
-
-
 
 def test_measure():
     """measuring voltage, current, power and resistance
@@ -274,16 +263,17 @@ def test_measure():
     If they are left floating, the test will fail!
     """
 
+    el.ch1.CC_mode(1.0)
     el.ch1.on()
-    assert ch.read_voltage() <= 0.02
-    assert ch.read_current() <= 0.02
-    assert ch.read_power() <= 0.02
-    assert ch.read_resistance() <= 0.02
+    assert ch.read_voltage() <= 0.01
+    assert ch.read_current() <= 0.01
+    assert ch.read_power() <= 0.01
+    assert ch.read_resistance() <= 0.01
     (V,I,P,R) = ch.read_all()
-    assert V <= 0.02
-    assert I <= 0.02
-    assert P <= 0.02
-    assert R <= 0.02
+    assert V <= 0.01
+    assert I <= 0.01
+    assert P <= 0.01
+    assert R <= 0.01
 
     el.ch1.off()
 
