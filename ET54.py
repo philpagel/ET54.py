@@ -101,6 +101,10 @@ Hardware:       {self.idn['hardware']}
     def close(self):
         "close connection to instument"
         self.connection.close()
+    
+    def beep(self):
+        "Beep"
+        self.write("SYST:BEEP")
 
     def unlock(self):
         """unlock the local interface
