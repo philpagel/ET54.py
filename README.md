@@ -13,22 +13,23 @@ This *should* work with all of the following devices:
 * ET5411A+
 * ET5420A+
 
-Testing was carried out on my ET5410A+. However, I have no access to any of the
-other models. If you own one of them and are willing to do some testing, please
-get in touch.
-
-Possibly, the to smaller ET54 models could work as well:
+And possibly also with these:
 
 * ET5406A+
 * ET5407A+
+
+Testing was carried out on my ET5410A+. However, I have no access to any of the
+other models. If you own one of them and are willing to do some testing, please
+get in touch.
 
 
 ## Mustool ET5410A+
 
 There are *Mustool* branded version of the ET5410A+ and possibly also of the
-other models. These devices run a modified firmware and return an empty model
-ID (`xxxxxx`) in response to the `*IDN?` SCPI command. To make these devices
-work, you need to explicitly provide the model ID when initializing the device:
+other models. These devices run a modified firmware and return an uninformative
+model ID (`xxxxxx`) in response to the `*IDN?` SCPI command. To make these
+devices work, you need to explicitly provide the model ID when initializing the
+device:
 
     from ET54 import ET54
     el = ET54("ASRL/dev/ttyUSB0", model="ET5410A+")
@@ -85,7 +86,7 @@ Here is a little example script that illustrates how things work:
     from ET54 import ET54
 
     # connect to the load
-    el = ET54("ASRL/dev/ttyUSB1")
+    el = ET54("ASRL/dev/ttyUSB1::INSTR")
 
     # set ranges
     el.ch1.Vrange("high")
