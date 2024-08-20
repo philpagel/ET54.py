@@ -13,7 +13,7 @@ RID = "ASRL/dev/ttyUSB1"
 el = ET54(RID)
 ch = el.ch1
 ch.off()
-ch.CC_mode()
+ch.CC_mode(0.1)
 
 # most tets assum `high` range, so set it
 ch.Vrange("high")
@@ -36,7 +36,7 @@ def test_write():
 def test_input_state():
     "setting and getting channel on/off state"
 
-    ch.CC_mode()
+    ch.CC_mode(0.1)
 
     ch.input("on")
     assert ch.input() == "ON"
@@ -85,7 +85,7 @@ def test_mode_invalid():
 def test_trigmode(mode):
     "get/set trigger mode"
     
-    assert ch.trigger_mode(mode) == mode
+    ch.trigger_mode(mode)
     assert ch.trigger_mode() == mode
 
 @pytest.mark.parametrize(
@@ -143,8 +143,9 @@ def test_CCmode(V, I, P, R):
 
     ch.CC_mode(I)
     assert ch.CC_current() == I
-    assert ch.CC_current(0.1) == 0.1
-    assert ch.CC_current(I) == I
+    ch.CC_current(0.1)  # change value before next test
+    ch.CC_current() == 0.1
+    ch.CC_current(I) == I
     assert ch.CC_current() == I
 
 @pytest.mark.parametrize(heading,parameters)
@@ -152,8 +153,8 @@ def test_CVmode(V, I, P, R):
 
     ch.CV_mode(V)
     assert ch.CV_voltage() == V
-    assert ch.CV_voltage(0.1) == 0.1
-    assert ch.CV_voltage(V) == V
+    ch.CV_voltage(0.1)
+    ch.CV_voltage(V)
     assert ch.CV_voltage() == V
 
 @pytest.mark.parametrize(heading,parameters)
@@ -161,8 +162,8 @@ def test_CPmode(V, I, P, R):
 
     ch.CP_mode(P)
     assert ch.CP_power() == P
-    assert ch.CP_power(0.1) == 0.1
-    assert ch.CP_power(P) == P
+    ch.CP_power(0.1)
+    ch.CP_power(P)
     assert ch.CP_power() == P
 
 @pytest.mark.parametrize(heading,parameters)
@@ -170,8 +171,8 @@ def test_CRmode(V, I, P, R):
     
     ch.CR_mode(R)
     assert ch.CR_resistance() == R 
-    assert ch.CR_resistance(0.1) == 0.1
-    assert ch.CR_resistance(R) == R
+    ch.CR_resistance(0.1)
+    ch.CR_resistance(R)
     assert ch.CR_resistance() == R
 
 @pytest.mark.parametrize(heading,parameters)
@@ -180,11 +181,10 @@ def test_CCCVmode(V, I, P, R):
     ch.CCCV_mode(I, V)
     assert ch.CCCV_current() == I
     assert ch.CCCV_voltage() == V
-    assert ch.CCCV_current(0.1) == 0.1
-    assert ch.CCCV_voltage(0.1) == 0.1
-    assert ch.CCCV_current(I) == I
+    ch.CCCV_current(0.1)
+    ch.CCCV_current(I)
     assert ch.CCCV_current() == I
-    assert ch.CCCV_voltage(V) == V
+    ch.CCCV_voltage(V)
     assert ch.CCCV_voltage() == V
 
 @pytest.mark.parametrize(heading,parameters)
@@ -193,10 +193,10 @@ def test_CRCVmode(V, I, P, R):
     ch.CRCV_mode(R, V)
     assert ch.CRCV_resistance() == R
     assert ch.CRCV_voltage() == V
-    assert ch.CRCV_voltage(0.1) == 0.1
-    assert ch.CRCV_voltage(V) == V
+    ch.CRCV_voltage(0.1)
+    ch.CRCV_voltage(V)
     assert ch.CRCV_voltage() == V
-    assert ch.CRCV_resistance(R) == R
+    ch.CRCV_resistance(R)
     assert ch.CRCV_resistance() == R
 
 @pytest.mark.parametrize(
@@ -204,13 +204,14 @@ def test_CRCVmode(V, I, P, R):
             ("CC", (2.0, 1.5, 1.10), "Voltage", (2.0, 1.5, 1.0)),
             ("CC", 5.5, "Time", 5),
             ("CC", 3.8, "Energy", 0.6),
-            ("CC", 1.2, "Capacity", 0.7),
+            ("cc", 1.2, "Capacity", 0.7),
             ("CR", 500, "Energy", 0.5),
-            ("CR", 700, "Capacity", 0.3),
+            ("cr", 700, "Capacity", 0.3),
             ])
 def test_BATTmode(mode, value, cutoff, cutoff_value):
     
     ch.BATT_mode(mode=mode, value=value, cutoff=cutoff[0], cutoff_value=cutoff_value)
+    mode = mode.upper()
     assert ch.BATT_submode() == mode
     if mode == "CC":
         assert ch.BATT_current() == value

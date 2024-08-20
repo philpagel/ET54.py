@@ -22,9 +22,6 @@ Testing was carried out on my ET5410A+. However, I have no access to any of the
 other models. If you own one of them and are willing to do some testing, please
 get in touch.
 
-
-## Mustool ET5410A+
-
 There are *Mustool* branded version of the ET5410A+ and possibly also of the
 other models. These devices run a modified firmware and return an uninformative
 model ID (`xxxxxx`) in response to the `*IDN?` SCPI command. To make these
@@ -63,8 +60,15 @@ device:
 Basic functions are working and I'm in the process of
 implementing the more involved things.
 
-Trying to set invalid values will raise a `RuntimeError` based on the load's
-response.
+Trying to set invalid values will raise an exception (e.g. `RuntimeError` or
+`ValueError`) based on the load's response and a few checks of my own.
+
+I am pretty confident that the values that you set with this class are
+correctly stored by the instrument because that's what all my test cases check
+for.  However, I have not yet tested all functionality in enough real-live
+circuits to be 100% confident that the load actually always behaves as
+expected. If not, that may be a bug on my side or a problem in the device
+firmware.
 
 # Dependencies
 
@@ -137,6 +141,10 @@ If you encounter problems, you can try to tweak a few parameters:
 | delay     | delay after read/write operation [s]                |
 | model     | model ID [ET5410/ET5420/ET541A+/...] <br> only required if `*IDN?` does not return a valid ID e.g. for Mustool branded ET5410A+ |
 
+The most likely candidate to fix weird problems is `delay`. The device manual
+does not specify what command frequency or processing time the instrument has
+so I found a value by trial and error.
+
 ## Channels
 
 The load object itself does not do many exciting things. For the actual work,
@@ -156,8 +164,8 @@ variable and use that directly:
 
 ## Mode setup
 
-All `*_mode()` methods will put the load into the respective mode and optionally
-accept all relevant parameters so you don't have to do the configuration separately. 
+All `*_mode()` methods will put the load into the respective mode and set
+all relevant parameters so you don't have to do the configuration separately.
 E.g. for CCCV mode:
 
     el.ch1.CCCV_mode(current=1.5, voltage=24)
@@ -165,6 +173,10 @@ E.g. for CCCV mode:
 or just 
     
     el.ch1.CCCV_mode(1.5, 24)
+
+If, for some reason, you prefer to just set the mode and then configure it
+separately, you can use `el.ch1.mode()` followed by the respective setup
+commands, instead.
 
 ## Reading data
 
@@ -220,7 +232,6 @@ The full documentation is contained in the doc-strings of the class. Use
 
     python -m pydoc ET54
 
-
 # Testing
 
 I use pytest to implement a bunch of test cases in order to verify everything
@@ -256,6 +267,11 @@ Currently, only channel 1 of the load is tested, even if you have a
 If you think you found a bug or you have an idea for a new feature, please open
 an issue here on GitHub. Please **do not submit pull-requests before discussing
 the issue** you want to address.
+
+If you want to report a bug, please make sure to replicate the erroneous
+behavior at least once before opening an issue and provide all information
+necessary to replicate the problem (what commands did you use, what was
+connected to the load, what did you observe, what did you expect?).
 
 I would very much appreciate help from people who own any of the models listed
 above (other than the ET5410A+) – no coding skills required: I just need people
