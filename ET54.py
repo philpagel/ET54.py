@@ -12,7 +12,7 @@ import sys, time, pyvisa
 class ET54:
     "ET54 series electronic load"
 
-    def __init__(self, RID, baudrate=9600, eol_r="\r\n", eol_w="\n", delay=0.15, model=None):
+    def __init__(self, RID, baudrate=9600, eol_r="\r\n", eol_w="\n", delay=0.2, model=None):
         """
         RID         pyvisa ressource ID
         baudrate    must match baudrate set in device (default: 9600)
@@ -205,7 +205,8 @@ trigger:        {self.trigger_mode()}
                 self.write(f"Ch{self.name}:SW {value}")
             else:
                 raise RuntimeError(f"invalid input state '{value}'")
-        return self.query(f"Ch{self.name}:SW?")
+        else:
+            return self.query(f"Ch{self.name}:SW?")
 
     def on(self):
         "turn input on"
@@ -228,7 +229,8 @@ trigger:        {self.trigger_mode()}
                 self.write(f"LOAD{self.name}:TRIG {trigmode}")
             else:
                 raise ValueError(f"invalid trigger mode '{trigmode}'.")
-        return self.query(f"LOAD{self.name}:TRIG?")
+        else:
+            return self.query(f"LOAD{self.name}:TRIG?")
 
     def trigger(self):
         "trigger event"
@@ -263,7 +265,8 @@ trigger:        {self.trigger_mode()}
                 raise ValueError(
                     f"Mode must be in ['CC', 'CV', 'CP', 'CR', 'CCCV', 'CRCV', 'TRAN', 'LIST', 'SHOR', 'BATT', 'LED']"
                 )
-        return self.query(f"Ch{self.name}:MODE?")
+        else:
+            return self.query(f"Ch{self.name}:MODE?")
 
     def Vrange(self, Vrange=None):
         "get/set voltage range (high|low)"
@@ -273,7 +276,8 @@ trigger:        {self.trigger_mode()}
                 self.write(f"LOAD{self.name}:VRANge {Vrange}")
             else:
                 raise ValueError(f"Voltage range must be 'high' or 'low'")
-        return self.query(f"LOAD{self.name}:VRANGE?")
+        else:
+            return self.query(f"LOAD{self.name}:VRANGE?")
 
     def Crange(self, Crange=None):
         "get/set current range to (high|low)"
@@ -283,7 +287,8 @@ trigger:        {self.trigger_mode()}
                 self.write(f"LOAD{self.name}:CRANge {Crange}")
             else:
                 raise ValueError(f"current range must be 'high' or 'low'")
-        return self.query(f"LOAD{self.name}:CRANGE?")
+        else:
+            return self.query(f"LOAD{self.name}:CRANGE?")
 
     ############################################################
     # protection
@@ -293,21 +298,24 @@ trigger:        {self.trigger_mode()}
 
         if value is not None:
             self.write(f"VOLT{self.name}:VMAX {value}")
-        return _tofloat(self.query(f"VOLT{self.name}:VMAX?"))
+        else:
+            return _tofloat(self.query(f"VOLT{self.name}:VMAX?"))
 
     def OCP(self, value=None):
         "get/set OCP current [A]"
 
         if value is not None:
             self.write(f"CURR{self.name}:IMAX {value}")
-        return _tofloat(self.query(f"CURR{self.name}:IMAX?"))
+        else:
+            return _tofloat(self.query(f"CURR{self.name}:IMAX?"))
 
     def OPP(self, value=None):
         "get/set OPP power [W]"
 
         if value is not None:
             self.write(f"POWE{self.name}:PMAX {value}")
-        return _tofloat(self.query(f"POWE{self.name}:PMAX?"))
+        else:
+            return _tofloat(self.query(f"POWE{self.name}:PMAX?"))
 
     def protection(self):
         """return protection state
@@ -336,7 +344,8 @@ trigger:        {self.trigger_mode()}
 
         if current is not None:
             self.write(f"CURR{self.name}:CC {current}")
-        return _tofloat(self.query(f"CURR{self.name}:CC?"))
+        else:
+            return _tofloat(self.query(f"CURR{self.name}:CC?"))
 
     ############################################################
     # CV mode
@@ -355,7 +364,8 @@ trigger:        {self.trigger_mode()}
 
         if voltage is not None:
             self.write(f"VOLT{self.name}:CV {voltage}")
-        return _tofloat(self.query(f"VOLT{self.name}:CV?"))
+        else:
+            return _tofloat(self.query(f"VOLT{self.name}:CV?"))
 
     ############################################################
     # CP mode
@@ -373,7 +383,8 @@ trigger:        {self.trigger_mode()}
 
         if power is not None:
             self.write(f"POWE{self.name}:CP {power}")
-        return _tofloat(self.query(f"POWE{self.name}:CP?"))
+        else:
+            return _tofloat(self.query(f"POWE{self.name}:CP?"))
 
     ############################################################
     # CR mode
@@ -390,7 +401,8 @@ trigger:        {self.trigger_mode()}
 
         if resistance is not None:
             self.write(f"RESI{self.name}:CR {resistance}")
-        return _tofloat(self.query(f"RESI{self.name}:CR?"))
+        else:
+            return _tofloat(self.query(f"RESI{self.name}:CR?"))
 
     ############################################################
     # CC+CV mode
@@ -410,14 +422,16 @@ trigger:        {self.trigger_mode()}
 
         if current is not None:
             self.write(f"CURR{self.name}:CCCV {current}")
-        return _tofloat(self.query(f"CURR{self.name}:CCCV?"))
+        else:
+            return _tofloat(self.query(f"CURR{self.name}:CCCV?"))
 
     def CCCV_voltage(self, voltage=None):
         "get/set the voltage value for CC+CV mode [V]"
 
         if voltage is not None:
             self.write(f"VOLT{self.name}:CCCV {voltage}")
-        return _tofloat(self.query(f"VOLT{self.name}:CCCV?"))
+        else:
+            return _tofloat(self.query(f"VOLT{self.name}:CCCV?"))
 
     ############################################################
     # CR+CV mode
@@ -437,14 +451,16 @@ trigger:        {self.trigger_mode()}
 
         if resistance is not None:
             self.write(f"RESI{self.name}:CRCV {resistance}")
-        return _tofloat(self.query(f"RESI{self.name}:CRCV?"))
+        else:
+            return _tofloat(self.query(f"RESI{self.name}:CRCV?"))
 
     def CRCV_voltage(self, voltage=None):
         "get/set the voltage value for CR+CV mode [V]"
 
         if voltage is not None:
             self.write(f"VOLT{self.name}:CRCV {voltage}")
-        return _tofloat(self.query(f"VOLT{self.name}:CRCV?"))
+        else:
+            return _tofloat(self.query(f"VOLT{self.name}:CRCV?"))
 
     ############################################################
     # short mode
@@ -471,14 +487,16 @@ trigger:        {self.trigger_mode()}
 
         if value is not None:
             self.write(f"VOLT{self.name}:LED {value}")
-        return _tofloat(self.query(f"VOLT{self.name}:LED?"))
+        else:
+            return _tofloat(self.query(f"VOLT{self.name}:LED?"))
 
     def LED_current(self, value=None):
         "get/set the I_0 current value for LED mode"
 
         if value is not None:
             self.write(f"CURR{self.name}:LED {value}")
-        return _tofloat(self.query(f"CURR{self.name}:LED?"))
+        else:
+            return _tofloat(self.query(f"CURR{self.name}:LED?"))
 
     def LED_coefficient(self, value=None):
         """get/set the coefficient for LED mode
@@ -490,7 +508,8 @@ trigger:        {self.trigger_mode()}
 
         if value is not None:
             self.write(f"LED{self.name}:COEF {value}")
-        return _tofloat(self.query(f"LED{self.name}:COEF?"))
+        else:
+            return _tofloat(self.query(f"LED{self.name}:COEF?"))
 
     ############################################################
     # battery mode
@@ -566,11 +585,13 @@ trigger:        {self.trigger_mode()}
         "get/set BATTERY submode (CC|CR)"
 
         if mode is not None:
-            if mode.upper() in ("CC", "CR"):
+            mode = mode.upper()
+            if mode in ("CC", "CR"):
                 self.write(f"BATT{self.name}:MODE {mode}")
             else:
                 raise RuntimeError("Invalid battery discharge mode '{mode}'.")
-        return self.query(f"BATT{self.name}:MODE?")
+        else:
+            return self.query(f"BATT{self.name}:MODE?")
 
     def BATT_current(self, current=None):
         "get/set BATTERY mode CC current"
@@ -599,7 +620,8 @@ trigger:        {self.trigger_mode()}
 
         if resistance is not None:
             self.write(f"RESI{self.name}:BCR {resistance}")
-        return _tofloat(self.query(f"RESI{self.name}:BCR?"))
+        else:
+            return _tofloat(self.query(f"RESI{self.name}:BCR?"))
 
     def BATT_cutoff(self, cutoff=None):
         """get/set BATTERY mode cutoff type
@@ -617,7 +639,8 @@ trigger:        {self.trigger_mode()}
 
         if cutoff is not None:
             self.write(f"BATT{self.name}:BCUT {cutoff}")
-        return self.query(f"BATT{self.name}:BCUT?")
+        else:
+            return self.query(f"BATT{self.name}:BCUT?")
 
     def BATT_cutoff_value(self, value=None):
         "get/set BATTERY mode cutoff value"
@@ -637,25 +660,26 @@ trigger:        {self.trigger_mode()}
                 case "Energy":
                     self.write(f"BATT{self.name}:BTE {value}")
 
-        match cutoff: 
-            case "Voltage":
-                submode = self.query(f"BATT{self.name}:MODE?")
-                if submode == "CC":
-                    return (
-                            _tofloat(self.query(f"VOLT{self.name}:BCC1?")),
-                            _tofloat(self.query(f"VOLT{self.name}:BCC2?")),
-                            _tofloat(self.query(f"VOLT{self.name}:BCC3?")),
-                            )
-                elif submode == "CR":
-                    return self.query(f"CURR{self.name}:BCC?") 
-                else:
-                    raise ValueError(f"Invalid BATT mode cutoff")
-            case "Time":
-                return _tofloat(self.query(f"TIME{self.name}:BTT?"))
-            case "Capacity":
-                return _tofloat(self.query(f"BATT{self.name}:BTC?"))
-            case "Energy":
-                return _tofloat(self.query(f"BATT{self.name}:BTE?"))
+        else:
+            match cutoff: 
+                case "Voltage":
+                    submode = self.query(f"BATT{self.name}:MODE?")
+                    if submode == "CC":
+                        return (
+                                _tofloat(self.query(f"VOLT{self.name}:BCC1?")),
+                                _tofloat(self.query(f"VOLT{self.name}:BCC2?")),
+                                _tofloat(self.query(f"VOLT{self.name}:BCC3?")),
+                                )
+                    elif submode == "CR":
+                        return self.query(f"CURR{self.name}:BCC?") 
+                    else:
+                        raise ValueError(f"Invalid BATT mode cutoff")
+                case "Time":
+                    return _tofloat(self.query(f"TIME{self.name}:BTT?"))
+                case "Capacity":
+                    return _tofloat(self.query(f"BATT{self.name}:BTC?"))
+                case "Energy":
+                    return _tofloat(self.query(f"BATT{self.name}:BTE?"))
 
     def BATT_capacity():
         "get the battery discharge capacity value [Ah]"
@@ -676,7 +700,8 @@ trigger:        {self.trigger_mode()}
 
         if level is not None:
             self.write(f"BATT{self.name}:BAEN {level}")
-        return _toint(self.query(f"BATT{self.name}:BAEN?"))
+        else:
+            return _toint(self.query(f"BATT{self.name}:BAEN?"))
 
     ############################################################
     # transient mode
@@ -719,7 +744,8 @@ trigger:        {self.trigger_mode()}
                 self.write(f"TRAN{self.name}:STATE {mode}")
             else:
                 raise ValueError(f"Invalid TRANSIENT sub-mode '{mode}'.")
-        return self.query(f"TRAN{self.name}:STATE?")
+        else:
+            return self.query(f"TRAN{self.name}:STATE?")
     
     def TRANSIENT_trigmode(self, trigmode=None):
         "get/set TRANSIENT sub-mode (COUT|PULS|TRIG)"
@@ -732,7 +758,8 @@ trigger:        {self.trigger_mode()}
                 self.write(f"TRAN{self.name}:MODE {trigmode}")
             else:
                 raise ValueError(f"Invalid TRANSIENT trigger mode '{trigmode}'")
-        return self.query(f"TRAN{self.name}:MODE?")
+        else:
+            return self.query(f"TRAN{self.name}:MODE?")
 
     def TRANSIENT_current(self, current=None):
         """get/set TRANSIENT currents (CC mode)
@@ -747,10 +774,11 @@ trigger:        {self.trigger_mode()}
             else:
                 raise ValueError(f"Transient current must be a tuple/list of length 2")
 
-        return (
-                _tofloat(self.query(f"CURR{self.name}:TA?")), 
-                _tofloat(self.query(f"CURR{self.name}:TB?")), 
-                )
+        else:
+            return (
+                    _tofloat(self.query(f"CURR{self.name}:TA?")), 
+                    _tofloat(self.query(f"CURR{self.name}:TB?")), 
+                    )
     
 
     def TRANSIENT_voltage(self, voltage=None):
@@ -766,10 +794,11 @@ trigger:        {self.trigger_mode()}
             else:
                 raise ValueError(f"Transient voltage must be a tuple/list of length 2")
 
-        return (
-                _tofloat(self.query(f"VOLT{self.name}:TA?")), 
-                _tofloat(self.query(f"VOLT{self.name}:TB?")), 
-                )
+        else:
+            return (
+                    _tofloat(self.query(f"VOLT{self.name}:TA?")), 
+                    _tofloat(self.query(f"VOLT{self.name}:TB?")), 
+                    )
 
     def TRANSIENT_width(self, width=None):
         """get/set TRANSIENT widh [ms]
@@ -783,10 +812,11 @@ trigger:        {self.trigger_mode()}
                 self.write(f"TIME{self.name}:WB {width[1]}")
             else:
                 raise ValueError(f"Transient widths must be a tuple/list of length 2")
-        return (
-                _tofloat(self.query(f"TIME{self.name}:WA?")), 
-                _tofloat(self.query(f"TIME{self.name}:WB?")), 
-                )
+        else:
+            return (
+                    _tofloat(self.query(f"TIME{self.name}:WA?")), 
+                    _tofloat(self.query(f"TIME{self.name}:WB?")), 
+                    )
 
     ############################################################
     # list mode

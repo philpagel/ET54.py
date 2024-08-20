@@ -153,8 +153,8 @@ variable and use that directly:
 
 ## Mode setup
 
-All `*_mode()` methods will put the load into the respective mode and optionally
-accept all relevant parameters so you don't have to do the configuration separately. 
+All `*_mode()` methods will put the load into the respective mode and set
+all relevant parameters so you don't have to do the configuration separately.
 E.g. for CCCV mode:
 
     el.ch1.CCCV_mode(current=1.5, voltage=24)
@@ -162,6 +162,10 @@ E.g. for CCCV mode:
 or just 
     
     el.ch1.CCCV_mode(1.5, 24)
+
+If, for some reason, you prefer to just set the mode and then configure it
+separately, you can use `el.ch1.mode()` followed by the respective setup
+commands, instead.
 
 ## Reading data
 
