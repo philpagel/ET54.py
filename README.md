@@ -60,8 +60,8 @@ device:
 Basic functions are working and I'm in the process of
 implementing the more involved things.
 
-Trying to set invalid values will raise a `RuntimeError` based on the load's
-response.
+Trying to set invalid values will raise an exception (e.g. `RuntimeError` or
+`ValueError`) based on the load's response and a few checks of my own.
 
 # Dependencies
 
@@ -216,7 +216,6 @@ The full documentation is contained in the doc-strings of the class. Use
 `pydoc` to see all of it:
 
     python -m pydoc ET54
-
 
 # Testing
 
