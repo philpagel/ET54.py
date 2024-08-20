@@ -13,7 +13,7 @@ RID = "ASRL/dev/ttyUSB1"
 el = ET54(RID)
 ch = el.ch1
 ch.off()
-ch.CC_mode()
+ch.CC_mode(0.1)
 
 # most tets assum `high` range, so set it
 ch.Vrange("high")
@@ -36,7 +36,7 @@ def test_write():
 def test_input_state():
     "setting and getting channel on/off state"
 
-    ch.CC_mode()
+    ch.CC_mode(0.1)
 
     ch.input("on")
     assert ch.input() == "ON"

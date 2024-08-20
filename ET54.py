@@ -216,26 +216,6 @@ trigger:        {self.trigger_mode()}
         "turn input off"
         self.write(f"Ch{self.name}:SW OFF")
 
-    def trigger_mode(self, trigmode=None):
-        """Set the trigger mode (MAN|EXT|TRG)
-
-        MAN:    manual trigger (TRIG button)
-        EXT:    external trigger (connector on back)
-        TRG:    remote trigger (trigger() method)
-        """
-        
-        if trigmode is not None:
-            if trigmode.upper() in ("MAN", "EXT", "TRG"):
-                self.write(f"LOAD{self.name}:TRIG {trigmode}")
-            else:
-                raise ValueError(f"invalid trigger mode '{trigmode}'.")
-        else:
-            return self.query(f"LOAD{self.name}:TRIG?")
-
-    def trigger(self):
-        "trigger event"
-        self.write(f"*TRG")
-
     ############################################################
     # mode and ranges
 
@@ -332,12 +312,11 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # CC mode
 
-    def CC_mode(self, current=None):
+    def CC_mode(self, current):
         """Put instrument into constant current (CC) mode
-        and set CC current if given"""
+        and set CC current"""
         self.write(f"Ch{self.name}:MODE CC")
-        if current is not None:
-            self.CC_current(current)
+        self.CC_current(current)
 
     def CC_current(self, current=None):
         "get/set the current value for CC mode [A]"
@@ -350,14 +329,13 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # CV mode
 
-    def CV_mode(self, voltage=None):
+    def CV_mode(self, voltage):
         """Put instrument into constant voltage (CV) mode
-        and set CV voltage if given
+        and set CV voltage
         """
 
         self.write(f"Ch{self.name}:MODE CV")
-        if voltage is not None:
-            self.CV_voltage(voltage)
+        self.CV_voltage(voltage)
 
     def CV_voltage(self, voltage=None):
         "get/set the voltage value for CV mode [V]"
@@ -370,9 +348,9 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # CP mode
 
-    def CP_mode(self, power=None):
+    def CP_mode(self, power):
         """Put instrument into constant power (CP) mode
-        Optionally set power"""
+        and set power"""
 
         self.write(f"Ch{self.name}:MODE CP")
         if power is not None:
@@ -389,12 +367,11 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # CR mode
 
-    def CR_mode(self, resistance=None):
+    def CR_mode(self, resistance):
         "Put instrument into constant resistance (CR) mode"
 
         self.write(f"Ch{self.name}:MODE CR")
-        if resistance is not None:
-            self.CR_resistance(resistance)
+        self.CR_resistance(resistance)
 
     def CR_resistance(self, resistance=None):
         "get/set the resistance value for CR mode [Ω]"
@@ -407,15 +384,13 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # CC+CV mode
 
-    def CCCV_mode(self, current=None, voltage=None):
+    def CCCV_mode(self, current, voltage):
         """Put instrument into constant current and constant voltage (CC+CV) mode
-        and set current, voltage if given"""
+        and set current, voltage"""
 
         self.write(f"Ch{self.name}:MODE CCCV")
-        if current is not None:
-            self.CCCV_current(current)
-        if voltage is not None:
-            self.CCCV_voltage(voltage)
+        self.CCCV_current(current)
+        self.CCCV_voltage(voltage)
 
     def CCCV_current(self, current=None):
         "get/set the current value for CC+CV mode"
@@ -436,15 +411,13 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # CR+CV mode
 
-    def CRCV_mode(self, resistance=None, voltage=None):
+    def CRCV_mode(self, resistance, voltage):
         """Put instrument into constant resistance and constant voltage (CR+CV) mode
-        and set voltage, resistance if given"""
+        and set voltage, resistance"""
 
         self.write(f"Ch{self.name}:MODE CRCV")
-        if voltage is not None:
-            self.CRCV_voltage(voltage)
-        if resistance is not None:
-            self.CRCV_resistance(resistance)
+        self.CRCV_voltage(voltage)
+        self.CRCV_resistance(resistance)
 
     def CRCV_resistance(self, resistance=None):
         "get/set the current value for CR+CV mode [A]"
@@ -471,16 +444,13 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # LED mode
 
-    def LED_mode(self, V0=None, I0=None, coef=None):
+    def LED_mode(self, V0, I0, coef):
         "Put instrument into LED mode"
 
         self.write(f"Ch{self.name}:MODE LED")
-        if V0 is not None:
-            self.LED.voltage(V0)
-        if I0 is not None:
-            self.LED.current(I0)
-        if coef is not None:
-            self.LED_coefficient(coef)
+        self.LED.voltage(V0)
+        self.LED.current(I0)
+        self.LED_coefficient(coef)
 
     def LED_voltage(self, value=None):
         "get/set the V0 voltage value for LED mode"
@@ -514,7 +484,7 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # battery mode
 
-    def BATT_mode(self, mode=None, value=None, cutoff=None, cutoff_value=None):
+    def BATT_mode(self, mode, value, cutoff, cutoff_value):
         """Put instrument into BATT mode
 
         Battery mode supports two different operation (sub)modes (CC and CR)
@@ -565,21 +535,16 @@ trigger:        {self.trigger_mode()}
         """
 
         self.write(f"Ch{self.name}:MODE BATT")
-        if mode is not None:
-            self.BATT_submode(mode)
-        if cutoff is not None:
-            self.BATT_cutoff(cutoff)
-        if value is not None:
-            submode = self.BATT_submode()
-            match submode:
-                case "CC":
-                    self.BATT_current(value)
-                case "CR":
-                    self.BATT_resistance(value)
-                case _:
-                    raise ValueError(f"Invalid BATT submode '{submode}'.")
-        if cutoff_value is not None:
-            self.BATT_cutoff_value(cutoff_value)
+        self.BATT_submode(mode)
+        self.BATT_cutoff(cutoff)
+        match mode.upper():
+            case "CC":
+                self.BATT_current(value)
+            case "CR":
+                self.BATT_resistance(value)
+            case _:
+                raise ValueError(f"Invalid BATT submode '{mode}'.")
+        self.BATT_cutoff_value(cutoff_value)
         
     def BATT_submode(self, mode=None):
         "get/set BATTERY submode (CC|CR)"
@@ -706,7 +671,7 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # transient mode
 
-    def TRANSIENT_mode(self, mode=None, trigmode=None, value=None, width=None):
+    def TRANSIENT_mode(self, mode, trigmode, value, width):
         """Put instrument into TRANSIENT mode (aka Dynamic mode)
        
         The load will switch between two states A and B depending on mode 
@@ -720,20 +685,16 @@ trigger:        {self.trigger_mode()}
         """
         
         self.write(f"Ch{self.name}:MODE TRAN")
-        if mode is not None:
-            self.TRANSIENT_submode(mode.upper())
-        if trigmode is not None:
-            self.TRANSIENT_trigmode(trigmode)
-        if value is not None:
-            submode = self.TRANSIENT_submode()
-            if submode == "CC":
+        self.TRANSIENT_submode(mode.upper())
+        self.TRANSIENT_trigmode(trigmode)
+        match mode.upper():
+            case "CC":
                 self.TRANSIENT_current(value)
-            elif submode == "CV":
+            case "CV":
                 self.TRANSIENT_voltage(value)
-            else:
-                raise ValueError(f"Invalid TRANSIENT submode {submode}")
-        if width is not None:
-            self.TRANSIENT_width(width)
+            case _:
+                raise ValueError(f"Invalid TRANSIENT submode {mode}")
+        self.TRANSIENT_width(width)
            
     def TRANSIENT_submode(self, mode=None):
         "get/set TRANSIENT sub-mode (CC|CV)"
@@ -835,7 +796,25 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # Trigger support
 
-    # XXX: to be implemented
+    def trigger_mode(self, trigmode=None):
+        """Set the trigger mode (MAN|EXT|TRG)
+
+        MAN:    manual trigger (TRIG button)
+        EXT:    external trigger (connector on back)
+        TRG:    remote trigger (trigger() method)
+        """
+        
+        if trigmode is not None:
+            if trigmode.upper() in ("MAN", "EXT", "TRG"):
+                self.write(f"LOAD{self.name}:TRIG {trigmode}")
+            else:
+                raise ValueError(f"invalid trigger mode '{trigmode}'.")
+        else:
+            return self.query(f"LOAD{self.name}:TRIG?")
+
+    def trigger(self):
+        "trigger event"
+        self.write(f"*TRG")
 
     ############################################################
     # measuring

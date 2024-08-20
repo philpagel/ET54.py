@@ -63,6 +63,13 @@ implementing the more involved things.
 Trying to set invalid values will raise an exception (e.g. `RuntimeError` or
 `ValueError`) based on the load's response and a few checks of my own.
 
+I am pretty confident that the values that you set with this class are
+correctly stored by the instrument because that's what all my test cases check
+for.  However, I have not yet tested all functionality in enough real-live
+circuits to be 100% confident that the load actually always behaves as
+expected. If not, that may be a bug on my side or a problem in the device
+firmware.
+
 # Dependencies
 
 The class requires `pyserial`, `pyvisa` and `pyvisa-py`, all of which can be
@@ -133,6 +140,10 @@ If you encounter problems, you can try to tweak a few parameters:
 | eol_W     | line terminator for writing to device               |
 | delay     | delay after read/write operation [s]                |
 | model     | model ID [ET5410/ET5420/ET541A+/...] <br> only required if `*IDN?` does not return a valid ID e.g. for Mustool branded ET5410A+ |
+
+The most likely candidate to fix weird problems is `delay`. The device manual
+does not specify what command frequency or processing time the instrument has
+so I found a value by trial and error.
 
 ## Channels
 
@@ -256,6 +267,11 @@ Currently, only channel 1 of the load is tested, even if you have a
 If you think you found a bug or you have an idea for a new feature, please open
 an issue here on GitHub. Please **do not submit pull-requests before discussing
 the issue** you want to address.
+
+If you want to report a bug, please make sure to replicate the erroneous
+behavior at least once before opening an issue and provide all information
+necessary to replicate the problem (what commands did you use, what was
+connected to the load, what did you observe, what did you expect?).
 
 I would very much appreciate help from people who own any of the models listed
 above (other than the ET5410A+) – no coding skills required: I just need people
