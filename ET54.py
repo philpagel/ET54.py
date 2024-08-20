@@ -538,11 +538,11 @@ trigger:        {self.trigger_mode()}
                         value=[2.0, 1.5, 1.0]
                         cutoff_value=[15, 12, 10]
 
-                        Current     Voltage     Description
+                        State  Current     Voltage     Description
                         ---------------------------------------------------
-                        2.0         15.0,       2.0A if V > 15.0V
-                        1.5         12.0,       1.5A if V > 12.0V
-                        1.0         10.0,       1.0A if V > 10.0V then off
+                        3      2.0         15.0,       2.0A if V > 15.0V
+                        2      1.5         12.0,       1.5A if V > 12.0V
+                        1      1.0         10.0,       1.0A if V > 10.0V then off
         """
 
         self.write(f"Ch{self.name}:MODE BATT")

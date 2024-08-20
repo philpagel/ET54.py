@@ -251,7 +251,7 @@ def testTRANSIENTmode(mode, trigmode, value, width):
     ch.TRANSIENT_mode(mode=mode, trigmode=trigmode, value=value, width=width)
     assert ch.TRANSIENT_submode() == mode.upper()
     assert ch.TRANSIENT_trigmode() == trigmode.upper()
-    if mode == "CC":
+    if mode.upper() == "CC":
         assert ch.TRANSIENT_current() == value
     else:
         assert ch.TRANSIENT_voltage() == value
