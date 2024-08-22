@@ -9,23 +9,26 @@ tested on ET5410A+
 
 import sys, time, pyvisa
 
+
 class ET54:
     "ET54 series electronic load"
 
-    def __init__(self, RID, baudrate=9600, eol_r="\r\n", eol_w="\n", delay=0.2, model=None):
+    def __init__(
+        self, RID, baudrate=9600, eol_r="\r\n", eol_w="\n", delay=0.2, model=None
+    ):
         """
         RID         pyvisa ressource ID
         baudrate    must match baudrate set in device (default: 9600)
         eol_r       line terminator for reading from device
         eol_W       line terminator for writing to device
         delay       delay after read/write operation [s]
-        model       model ID [ET5410|ET5420|ET5410A+|...] 
+        model       model ID [ET5410|ET5420|ET5410A+|...]
                     only required if `*IDN?` does not return a valid ID
                     e.g. for Mustool branded ET5410A+
         """
         rm = pyvisa.ResourceManager()
         self.connection = rm.open_resource(RID)
-        self.connection.baud_rate=baudrate
+        self.connection.baud_rate = baudrate
         self.connection.query_delay = delay
         self.connection.read_termination = eol_r
         self.connection.write_termination = eol_w
@@ -75,7 +78,7 @@ Hardware:       {self.idn['hardware']}
         "Write command to connection and check status"
 
         ret = self.connection.query(command)
-        time.sleep(self.connection.query_delay )
+        time.sleep(self.connection.query_delay)
         if ret == "Rexecu success":
             return 0
         elif ret == "Rcmd err":
@@ -101,7 +104,7 @@ Hardware:       {self.idn['hardware']}
     def close(self):
         "close connection to instument"
         self.connection.close()
-    
+
     def beep(self):
         "Beep"
         self.write("SYST:BEEP")
@@ -117,6 +120,7 @@ Hardware:       {self.idn['hardware']}
     def fan(self):
         "return fan state"
         return self.query("SELF:FAN?")
+
 
 class channel:
     "Electronic load channel"
@@ -169,9 +173,9 @@ trigger:        {self.trigger_mode()}
                 ret += f"submode:        {submode}\n"
                 ret += f"cutoff:         {cutoff}\n"
                 if submode == "CC":
-                        ret += f"current:        {self.BATT_current()} A\n"
+                    ret += f"current:        {self.BATT_current()} A\n"
                 elif submode == "CR":
-                        ret += f"resistance      {self.BATT_resistance()} Ω\n"
+                    ret += f"resistance      {self.BATT_resistance()} Ω\n"
                 if cutoff == "Voltage":
                     ret += f"cutoff_value:   {self.BATT_cutoff_value()} V\n"
                 elif cutoff == "Time":
@@ -189,7 +193,7 @@ trigger:        {self.trigger_mode()}
                 elif submode == "CV":
                     ret += f"voltage:        {self.TRANSIENT_voltage()} A\n"
                 ret += f"pulse width:    {self.TRANSIENT_width()} s\n"
-                
+
             case "LIST":
                 pass
         return ret
@@ -221,7 +225,7 @@ trigger:        {self.trigger_mode()}
 
     def mode(self, mode=None):
         """get/set channel mode (CC|CV|CP|CR|CCCV|CRCV|TRAN|LIST|SHOR|BATT|LED)
-        
+
         For setting up different modes better use the `*_mode()` methods that
         allow configuring each mode at the same time."""
 
@@ -299,7 +303,7 @@ trigger:        {self.trigger_mode()}
 
     def protection(self):
         """return protection state
-        
+
         NONE    No protection has been triggered
         OV      OCP triggered
         OC      OCP triggered
@@ -315,7 +319,7 @@ trigger:        {self.trigger_mode()}
     def CC_mode(self, current):
         """Put instrument into constant current (CC) mode
         and set CC current"""
-        self.write(f"Ch{self.name}:MODE CC")
+        self.mode("CC")
         self.CC_current(current)
 
     def CC_current(self, current=None):
@@ -334,7 +338,7 @@ trigger:        {self.trigger_mode()}
         and set CV voltage
         """
 
-        self.write(f"Ch{self.name}:MODE CV")
+        self.mode("CV")
         self.CV_voltage(voltage)
 
     def CV_voltage(self, voltage=None):
@@ -352,7 +356,7 @@ trigger:        {self.trigger_mode()}
         """Put instrument into constant power (CP) mode
         and set power"""
 
-        self.write(f"Ch{self.name}:MODE CP")
+        self.mode("CP")
         if power is not None:
             self.CP_power(power)
 
@@ -370,7 +374,7 @@ trigger:        {self.trigger_mode()}
     def CR_mode(self, resistance):
         "Put instrument into constant resistance (CR) mode"
 
-        self.write(f"Ch{self.name}:MODE CR")
+        self.mode("CR")
         self.CR_resistance(resistance)
 
     def CR_resistance(self, resistance=None):
@@ -388,7 +392,7 @@ trigger:        {self.trigger_mode()}
         """Put instrument into constant current and constant voltage (CC+CV) mode
         and set current, voltage"""
 
-        self.write(f"Ch{self.name}:MODE CCCV")
+        self.mode("CCCV")
         self.CCCV_current(current)
         self.CCCV_voltage(voltage)
 
@@ -415,7 +419,7 @@ trigger:        {self.trigger_mode()}
         """Put instrument into constant resistance and constant voltage (CR+CV) mode
         and set voltage, resistance"""
 
-        self.write(f"Ch{self.name}:MODE CRCV")
+        self.mode("CRCV")
         self.CRCV_voltage(voltage)
         self.CRCV_resistance(resistance)
 
@@ -439,7 +443,7 @@ trigger:        {self.trigger_mode()}
     # short mode
     def SHORT_mode(self):
         "Put instrument into SHORT circuit mode"
-        self.write(f"Ch{self.name}:MODE SHORT")
+        self.mode("SHORT")
 
     ############################################################
     # LED mode
@@ -447,7 +451,7 @@ trigger:        {self.trigger_mode()}
     def LED_mode(self, V0, I0, coef):
         "Put instrument into LED mode"
 
-        self.write(f"Ch{self.name}:MODE LED")
+        self.mode("LED")
         self.LED.voltage(V0)
         self.LED.current(I0)
         self.LED_coefficient(coef)
@@ -495,8 +499,8 @@ trigger:        {self.trigger_mode()}
         value:      current value [A] (CC mode)
                       or
                     resistance value [Ω] (CR mode)
-                    
-                    If `cutoff == 'V'` AND `mode == 'CC'`: 
+
+                    If `cutoff == 'V'` AND `mode == 'CC'`:
                         list of up to 3 current values that
                         are set once the respective cutoff_value
                         has been reached.
@@ -513,16 +517,16 @@ trigger:        {self.trigger_mode()}
                     different current.
 
                     Most of the time, a single float defining the cutoff-value:
-                        
+
                         Voltage [V]
                         Time [s]
                         Energy [Wh]
                         Capacity [Ah]
 
-                    If  `cutoff == 'V'` AND `mode == 'CC'`: 
+                    If  `cutoff == 'V'` AND `mode == 'CC'`:
                         A list of up to three voltage cutoffs that
                         trigger switching to the next current value once reached
-                        
+
                         E.g.:
                         value=[2.0, 1.5, 1.0]
                         cutoff_value=[15, 12, 10]
@@ -534,7 +538,7 @@ trigger:        {self.trigger_mode()}
                         1      1.0         10.0,       1.0A if V > 10.0V then off
         """
 
-        self.write(f"Ch{self.name}:MODE BATT")
+        self.mode("BATT")
         self.BATT_submode(mode)
         self.BATT_cutoff(cutoff)
         match mode.upper():
@@ -545,7 +549,7 @@ trigger:        {self.trigger_mode()}
             case _:
                 raise ValueError(f"Invalid BATT submode '{mode}'.")
         self.BATT_cutoff_value(cutoff_value)
-        
+
     def BATT_submode(self, mode=None):
         "get/set BATTERY submode (CC|CR)"
 
@@ -560,7 +564,7 @@ trigger:        {self.trigger_mode()}
 
     def BATT_current(self, current=None):
         "get/set BATTERY mode CC current"
-        
+
         cutoff = self.BATT_cutoff()
         if current is not None:
             if cutoff == "Voltage":
@@ -571,12 +575,11 @@ trigger:        {self.trigger_mode()}
             else:
                 self.write(f"CURR{self.name}:BCC {current}")
         if cutoff == "Voltage":
-
             return (
-                        _tofloat(self.query(f"CURR{self.name}:BCC1?")),
-                        _tofloat(self.query(f"CURR{self.name}:BCC2?")),
-                        _tofloat(self.query(f"CURR{self.name}:BCC3?")),
-                        )
+                _tofloat(self.query(f"CURR{self.name}:BCC1?")),
+                _tofloat(self.query(f"CURR{self.name}:BCC2?")),
+                _tofloat(self.query(f"CURR{self.name}:BCC3?")),
+            )
         else:
             return _tofloat(self.query(f"CURR{self.name}:BCC?"))
 
@@ -590,10 +593,10 @@ trigger:        {self.trigger_mode()}
 
     def BATT_cutoff(self, cutoff=None):
         """get/set BATTERY mode cutoff type
-        
+
         Uses single letters for setting but will return
         words:
-        
+
         set get
         ---------------
         V   Voltage [V]
@@ -626,17 +629,17 @@ trigger:        {self.trigger_mode()}
                     self.write(f"BATT{self.name}:BTE {value}")
 
         else:
-            match cutoff: 
+            match cutoff:
                 case "Voltage":
                     submode = self.query(f"BATT{self.name}:MODE?")
                     if submode == "CC":
                         return (
-                                _tofloat(self.query(f"VOLT{self.name}:BCC1?")),
-                                _tofloat(self.query(f"VOLT{self.name}:BCC2?")),
-                                _tofloat(self.query(f"VOLT{self.name}:BCC3?")),
-                                )
+                            _tofloat(self.query(f"VOLT{self.name}:BCC1?")),
+                            _tofloat(self.query(f"VOLT{self.name}:BCC2?")),
+                            _tofloat(self.query(f"VOLT{self.name}:BCC3?")),
+                        )
                     elif submode == "CR":
-                        return self.query(f"CURR{self.name}:BCC?") 
+                        return self.query(f"CURR{self.name}:BCC?")
                     else:
                         raise ValueError(f"Invalid BATT mode cutoff")
                 case "Time":
@@ -646,18 +649,18 @@ trigger:        {self.trigger_mode()}
                 case "Energy":
                     return _tofloat(self.query(f"BATT{self.name}:BTE?"))
 
-    def BATT_capacity():
+    def BATT_capacity(self):
         "get the battery discharge capacity value [Ah]"
         return self.query(f"BATT{self.name}:CAPA?")
-    
-    def BATT_energy():
+
+    def BATT_energy(self):
         "get the battery discharge energy value [Wh]"
         return self.query(f"BATT{self.name}:CAPA?")
 
     def BATT_cutoff_level(self, level=None):
         """get/set cutoff level (1|2|3)
 
-        only works in CC mode with voltage cutoff. 
+        only works in CC mode with voltage cutoff.
         Will force the 1st/2nd/3rd cutoff level without requiring
         the voltage to drop to the respective cutoff value.
         Level 3 is the default state!
@@ -673,8 +676,8 @@ trigger:        {self.trigger_mode()}
 
     def TRANSIENT_mode(self, mode, trigmode, value, width):
         """Put instrument into TRANSIENT mode (aka Dynamic mode)
-       
-        The load will switch between two states A and B depending on mode 
+
+        The load will switch between two states A and B depending on mode
         and trigmode
 
         mode:       sub-mode (CC|CV)
@@ -683,8 +686,8 @@ trigger:        {self.trigger_mode()}
                     depending on mode
         width:      Pulse width for the two states [s]
         """
-        
-        self.write(f"Ch{self.name}:MODE TRAN")
+
+        self.mode("TRAN")
         self.TRANSIENT_submode(mode.upper())
         self.TRANSIENT_trigmode(trigmode)
         match mode.upper():
@@ -695,10 +698,10 @@ trigger:        {self.trigger_mode()}
             case _:
                 raise ValueError(f"Invalid TRANSIENT submode {mode}")
         self.TRANSIENT_width(width)
-           
+
     def TRANSIENT_submode(self, mode=None):
         "get/set TRANSIENT sub-mode (CC|CV)"
-       
+
         if mode is not None:
             mode = mode.upper()
             if mode in ["CC", "CV"]:
@@ -707,10 +710,10 @@ trigger:        {self.trigger_mode()}
                 raise ValueError(f"Invalid TRANSIENT sub-mode '{mode}'.")
         else:
             return self.query(f"TRAN{self.name}:STATE?")
-    
+
     def TRANSIENT_trigmode(self, trigmode=None):
         "get/set TRANSIENT sub-mode (COUT|PULS|TRIG)"
-        
+
         if trigmode is not None:
             trigmode = trigmode.upper()
             if trigmode == "CONT":
@@ -724,12 +727,12 @@ trigger:        {self.trigger_mode()}
 
     def TRANSIENT_current(self, current=None):
         """get/set TRANSIENT currents (CC mode)
-        
+
         current:    list of two current values: [I_A, I_B]
         """
 
-        if (current is not None): 
-            if isinstance(current, (list, tuple)) and (len(current)==2):
+        if current is not None:
+            if isinstance(current, (list, tuple)) and (len(current) == 2):
                 self.write(f"CURR{self.name}:TA {current[0]}")
                 self.write(f"CURR{self.name}:TB {current[1]}")
             else:
@@ -737,19 +740,18 @@ trigger:        {self.trigger_mode()}
 
         else:
             return (
-                    _tofloat(self.query(f"CURR{self.name}:TA?")), 
-                    _tofloat(self.query(f"CURR{self.name}:TB?")), 
-                    )
-    
+                _tofloat(self.query(f"CURR{self.name}:TA?")),
+                _tofloat(self.query(f"CURR{self.name}:TB?")),
+            )
 
     def TRANSIENT_voltage(self, voltage=None):
         """get/set TRANSIENT voltages (CV mode)
-        
+
         current:    list of two voltage values: [V_A, V_B]
         """
 
         if voltage is not None:
-            if isinstance(voltage, (list, tuple)) and len(voltage)==2:
+            if isinstance(voltage, (list, tuple)) and len(voltage) == 2:
                 self.write(f"VOLT{self.name}:TA {voltage[0]}")
                 self.write(f"VOLT{self.name}:TB {voltage[1]}")
             else:
@@ -757,9 +759,9 @@ trigger:        {self.trigger_mode()}
 
         else:
             return (
-                    _tofloat(self.query(f"VOLT{self.name}:TA?")), 
-                    _tofloat(self.query(f"VOLT{self.name}:TB?")), 
-                    )
+                _tofloat(self.query(f"VOLT{self.name}:TA?")),
+                _tofloat(self.query(f"VOLT{self.name}:TB?")),
+            )
 
     def TRANSIENT_width(self, width=None):
         """get/set TRANSIENT widh [ms]
@@ -768,28 +770,109 @@ trigger:        {self.trigger_mode()}
         """
 
         if width is not None:
-            if isinstance(width, (list, tuple)) and len(width)==2:
+            if isinstance(width, (list, tuple)) and len(width) == 2:
                 self.write(f"TIME{self.name}:WA {width[0]}")
                 self.write(f"TIME{self.name}:WB {width[1]}")
             else:
                 raise ValueError(f"Transient widths must be a tuple/list of length 2")
         else:
             return (
-                    _tofloat(self.query(f"TIME{self.name}:WA?")), 
-                    _tofloat(self.query(f"TIME{self.name}:WB?")), 
-                    )
+                _tofloat(self.query(f"TIME{self.name}:WA?")),
+                _tofloat(self.query(f"TIME{self.name}:WB?")),
+            )
 
     ############################################################
     # list mode
 
-    def LIST_mode(self):
-        "Put instrument into LIST mode"
-        self.write(f"Ch{self.name}:MODE LIST")
+    def LIST_mode(self, trigmode, params):
+        """Put instrument into LIST mode and configure it
+
+        params: list/tuple of lists/tuples/dicts representing a row in the list:
+
+        num     row number (1-10)
+        mode    {CC|CV|CP|CR|OPEN|SHORT}
+        value   value of current|voltage|poewr|resistance for respecive mode
+        delay   time to spend in this row [s]
+        comp    {OFF|CURRent|VOLTage|POWer|RESistance}
+        maxval  upper limit for value
+        minval  lower limit for value
+        """
+
+        self.mode("LIST")
+        self.LIST_trigmode(trigmode)
+        self.LIST_rows(params)
+
+    def LIST_trigmode(self, trigmode=None):
+        "get/set LIST trigger mode {AUTO|TRIGGER}"
+
+        if trigmode is not None:
+            self.write(f"LIST{self.name}:MODE {trigmode.upper()}")
+        else:
+            return self.query(f"LIST{self.name}:MODE?")
+
+    def LIST_rows(self, params):
+        """Configure LIST mode parameters
+
+        params is a list of parameter sets, each defining one list entry.
+        Every entry must contain all of the following values:
+
+        num     row number (1-10)
+        mode    {CC|CV|CP|CR|OPEN|SHORT}
+        value   value of current|voltage|poewr|resistance for respecive mode
+        delay   time to spend in this row [s]
+        comp    {OFF|CURRent|VOLTage|POWer|RESistance}
+        maxval  upper limit for value
+        minval  lower limit for value
+
+        either as a list/tuple in that order or a dict containing
+        all of them as keys with the respective values
+        """
+
+        for row in params:
+            if isinstance(row, (list, tuple)):
+                self.LIST_row(*row)
+            elif isinstance(row, dict):
+                self.LIST_row(**row)
+            else:
+                raise ValueError(f"LIST 'params' must be a list, tuple or dict.")
+
+    def LIST_row(self, num, mode, value, delay, comp, maxval, minval):
+        "set a single paramter row in the LIST"
+
+        mode = {"CC": 0, "CV": 1, "CP": 2, "CR": 3, "OPEN": 4, "SHORT": 5}[mode.upper()]
+        comp = {"OFF": 0, "CURRENT": 1, "VOLTAGE": 2, "POWER": 3, "RESISTANCE": 4}[
+            comp.upper()
+        ]
+        params = ", ".join(
+            [str(x) for x in [num, mode, value, delay, comp, maxval, minval]]
+        )
+        self.write(f"LIST{self.name}:PARAmeter {params}")
+
+    def LIST_loop(self, state=None):
+        "get/ste loop state {ON|OFF}"
+
+        if state is not None:
+            self.write(f"LIST{self.name}:LOOP {state.upper()}")
+        else:
+            return self.query(f"LIST{self.name}:LOOP?")
+
+    def LIST_result(self, start, end):
+        "return the final result after the list has finisehd {pass|fail}"
+        ret = self.query(f"LIST{self.name}:OUT? {start}, {end}")
+        return {"0": "NA", "1": "PASS", "2": "FAIL"}[ret]
+
+    ############################################################
+    # Scan mode
 
     # XXX: to be implemented
 
     ############################################################
     # Qualifiction test mode
+
+    # XXX: to be implemented
+
+    ############################################################
+    # Load effect test
 
     # XXX: to be implemented
 
@@ -803,7 +886,7 @@ trigger:        {self.trigger_mode()}
         EXT:    external trigger (connector on back)
         TRG:    remote trigger (trigger() method)
         """
-        
+
         if trigmode is not None:
             if trigmode.upper() in ("MAN", "EXT", "TRG"):
                 self.write(f"LOAD{self.name}:TRIG {trigmode}")
@@ -842,6 +925,7 @@ trigger:        {self.trigger_mode()}
 
 # support functions
 
+
 def _toint(value):
     "strip leading 'R' and convert to int"
 
@@ -849,12 +933,14 @@ def _toint(value):
         value = value[1:]
     return int(value)
 
+
 def _tofloat(value):
     "strip leading 'R' and convert to float"
 
     if value.startswith("R"):
         value = value[1:]
     return float(value)
+
 
 def _tofloats(value):
     "strip leading 'R' split and convert all to float"
@@ -864,7 +950,8 @@ def _tofloats(value):
 
     return [float(x) for x in value]
 
-def value_extend (x, n):
+
+def value_extend(x, n):
     "turn x into list of length n by replicating the last element"
 
     if isinstance(x, list):
@@ -875,10 +962,11 @@ def value_extend (x, n):
         x = [x]
     else:
         raise ValueError(f"x must be in, float, list or tupple not '{type(x)}'")
-    
-    if 0 < len(x) < n+1 :
-        x.extend([x[-1]] * (n-len(x)) )
-    else:
-        raise ValueError(f"Wrong number of arguments. Expected up to {n}, got {len(x)}.")
-    return x
 
+    if 0 < len(x) < n + 1:
+        x.extend([x[-1]] * (n - len(x)))
+    else:
+        raise ValueError(
+            f"Wrong number of arguments. Expected up to {n}, got {len(x)}."
+        )
+    return x
