@@ -9,12 +9,11 @@ tested on ET5410A+
 
 import sys, time, pyvisa
 
-
 class ET54:
     "ET54 series electronic load"
 
     def __init__(
-        self, RID, baudrate=9600, eol_r="\r\n", eol_w="\n", delay=0.2, model=None
+        self, RID, baudrate=9600, eol_r="\r\n", eol_w="\n", delay=0.2, timeout=2000, model=None
     ):
         """
         RID         pyvisa ressource ID
@@ -22,6 +21,7 @@ class ET54:
         eol_r       line terminator for reading from device
         eol_W       line terminator for writing to device
         delay       delay after read/write operation [s]
+        timeout     read timeout [ms]
         model       model ID [ET5410|ET5420|ET5410A+|...]
                     only required if `*IDN?` does not return a valid ID
                     e.g. for Mustool branded ET5410A+
@@ -30,6 +30,7 @@ class ET54:
         self.connection = rm.open_resource(RID)
         self.connection.baud_rate = baudrate
         self.connection.query_delay = delay
+        self.connection.timeout = timeout
         self.connection.read_termination = eol_r
         self.connection.write_termination = eol_w
 
@@ -55,9 +56,11 @@ class ET54:
 
         if self.idn["model"].upper() in ("ET5410", "ET5410A+", "ET5411", "ET5411A+"):
             self.ch1 = channel("1", self.write, self.query)
+            self.Channels = [self.ch1]
         elif self.idn["model"] == "ET5420A+":
             self.ch1 = channel("1", self.write, self.query)
             self.ch2 = channel("2", self.write, self.query)
+            self.Channels = [self.ch1, self.ch2]
         else:
             raise RuntimeError(f"Instrument ID '{self.idn['model']}' not supported.")
 
@@ -69,6 +72,7 @@ class ET54:
 Serial:         {self.idn['SN']}
 Firmware:       {self.idn['firmware']}
 Hardware:       {self.idn['hardware']}
+
 """
         ret += self.ch1.__str__()
 
@@ -90,16 +94,32 @@ Hardware:       {self.idn['hardware']}
                 f"SCPI command '{command}' returned unknown response ('{ret}')"
             )
 
-    def query(self, command):
-        "Write command to connection and return answer value"
+    def query(self, command, nrows=1, timeout=None):
+        """Write command to connection and return answer value
+        By default, reads 1 line of response.
+        If you expect more, you need to set `nrows` to the respective value
+        If you expect the respinse to be slow, you can set a ne timout just for
+        this request
+        """
+        
+        if timeout is not None:
+            _timeout = self.connection.timeout
+            self.connection.timeout = timeout
 
-        value = self.connection.query(command)
+        self.connection.write(command)
         time.sleep(self.connection.query_delay)
-        if value == "Rcmd err":
-            print(f"Command failed ({value})", file=sys.stderr)
-            return None
-        else:
-            return value
+        ret = []
+        for i in range(nrows):
+            value = self.connection.read()
+            time.sleep(self.connection.query_delay)
+            ret.append(value)
+            if value == "Rcmd err":
+                print(f"Command '{command}' failed ({value})", file=sys.stderr)
+                return None
+        if timeout is not None:
+            self.connection.timeout = _timeout 
+        return  ret if len(ret) > 1 else ret[0]
+
 
     def close(self):
         "close connection to instument"
@@ -123,7 +143,7 @@ Hardware:       {self.idn['hardware']}
 
 
 class channel:
-    "Electronic load channel"
+    "input channel"
 
     def __init__(self, name, write, query):
         self.name = name
@@ -133,19 +153,17 @@ class channel:
     def __str__(self):
         mode = self.mode()
 
-        ret = f"""
-Channel {self.name}
+        ret = f"""Channel {self.name}
 Input state:    {self.input()}
 Voltage range:  {self.Vrange()}
 Current range:  {self.Crange()}
 OCP:            {self.OCP()} A
 OVP:            {self.OVP()} V
 OPP:            {self.OPP()} W
-mode:           {mode}
-trigger:        {self.trigger_mode()}
+Trigger:        {self.trigger_mode()}
+Mode:           {mode}
 """
 
-        # XXX:
         match self.mode():
             case "CC":
                 ret += f"Current:        {self.CC_current()} A"
@@ -193,9 +211,32 @@ trigger:        {self.trigger_mode()}
                 elif submode == "CV":
                     ret += f"voltage:        {self.TRANSIENT_voltage()} A\n"
                 ret += f"pulse width:    {self.TRANSIENT_width()} s\n"
-
             case "LIST":
-                pass
+                ret += f"Loop:           {self.LIST_loop()}\n"
+                ret += f"Step mode:      {self.LIST_stepmode()}\n"
+                ret += f"Steps:          {self.LIST_steps()}\n"
+                ret += "List params:    "
+                ret += "num mode   value delay comp        maxval minval\n"
+                for row in self.LIST_rows():
+                    ret += f"                {row['num']:3} "
+                    ret += f"{row['mode']:<5} "
+                    ret += f"{row['value']:>6} "
+                    ret += f"{row['delay']:5} "
+                    ret += f"{row['comp']:<10}  "
+                    ret += f"{row['maxval']:6} "
+                    ret += f"{row['minval']:6}\n"
+                ret += "List results:   "
+                ret += "num mode   value result maxval minval\n"
+                for row in self.LIST_result():
+                    ret += f"                {row['num']:3} "
+                    ret += f"{row['mode']:<5} "
+                    ret += f"{row['value']:>6} "
+                    ret += f"{row['result']:5}  "
+                    ret += f"{row['maxval']:6} "
+                    ret += f"{row['minval']:6}\n"
+
+
+
         return ret
 
     ############################################################
@@ -226,8 +267,8 @@ trigger:        {self.trigger_mode()}
     def mode(self, mode=None):
         """get/set channel mode (CC|CV|CP|CR|CCCV|CRCV|TRAN|LIST|SHOR|BATT|LED)
 
-        For setting up different modes better use the `*_mode()` methods that
-        allow configuring each mode at the same time."""
+        For fast setup use the `*_mode()` methods that allow configuring each
+        mode at the same time."""
 
         if mode is not None:
             mode = mode.upper()
@@ -784,69 +825,94 @@ trigger:        {self.trigger_mode()}
     ############################################################
     # list mode
 
-    def LIST_mode(self, trigmode, params):
+    def LIST_mode(self, stepmode, params):
         """Put instrument into LIST mode and configure it
+
+        stepmode: mode for advancing in list {AUTO|TRIGGER}
 
         params: list/tuple of lists/tuples/dicts representing a row in the list:
 
-        num     row number (1-10)
-        mode    {CC|CV|CP|CR|OPEN|SHORT}
-        value   value of current|voltage|poewr|resistance for respecive mode
-        delay   time to spend in this row [s]
-        comp    {OFF|CURRent|VOLTage|POWer|RESistance}
-        maxval  upper limit for value
-        minval  lower limit for value
+            num     row number (1-10)
+            mode    {CC|CV|CP|CR|OPEN|SHORT}
+            value   value of current|voltage|poewr|resistance for respecive mode
+            delay   time to spend in this row [s]
+            comp    {OFF|CURRent|VOLTage|POWer|RESistance}
+            maxval  upper limit for value
+            minval  lower limit for value
         """
 
         self.mode("LIST")
-        self.LIST_trigmode(trigmode)
+        self.LIST_stepmode(stepmode)
         self.LIST_rows(params)
 
-    def LIST_trigmode(self, trigmode=None):
-        "get/set LIST trigger mode {AUTO|TRIGGER}"
+    def LIST_stepmode(self, stepmode=None):
+        "get/set LIST step mode {AUTO|TRIGGER}"
 
-        if trigmode is not None:
-            self.write(f"LIST{self.name}:MODE {trigmode.upper()}")
+        if stepmode is not None:
+            self.write(f"LIST{self.name}:MODE {stepmode.upper()}")
         else:
             return self.query(f"LIST{self.name}:MODE?")
 
-    def LIST_rows(self, params):
-        """Configure LIST mode parameters
+    def LIST_rows(self, params=None):
+        """get/set LIST mode parameters
 
         params is a list of parameter sets, each defining one list entry.
         Every entry must contain all of the following values:
 
-        num     row number (1-10)
-        mode    {CC|CV|CP|CR|OPEN|SHORT}
-        value   value of current|voltage|poewr|resistance for respecive mode
-        delay   time to spend in this row [s]
-        comp    {OFF|CURRent|VOLTage|POWer|RESistance}
-        maxval  upper limit for value
-        minval  lower limit for value
+            num     row number (1-10)
+            mode    {CC|CV|CP|CR|OPEN|SHORT}
+            value   value of current|voltage|poewr|resistance for respecive mode
+            delay   time to spend in this row [s]
+            comp    {OFF|CURRent|VOLTage|POWer|RESistance}
+            maxval  upper limit for value
+            minval  lower limit for value
 
         either as a list/tuple in that order or a dict containing
         all of them as keys with the respective values
         """
+        
+        if params is not None:
+            for row in params:
+                if isinstance(row, (list, tuple)):
+                    self._LIST_row(*row)
+                elif isinstance(row, dict):
+                    self._LIST_row(**row)
+                else:
+                    raise ValueError(f"LIST 'params' must be a list, tuple or dict. Got {type(params)}")
+        else:
+            response = self.query(f"LIST{self.name}:PARA? 1,10", 10, timeout=2500)
+            ret = []
+            for line in response:
+                line = line.rstrip()
+                line = line[1:] if line.startswith("R") else line
+                fields = line.split(",")
+                dat = dict(
+                        zip(
+                            ("num", "mode", "value", "delay", "comp", "maxval", "minval"), 
+                            fields))
+                dat["mode"] = ["CC", "CV", "CP", "CR", "OPEN", "SHORT"][int(dat["mode"])]
+                dat["comp"] = ["OFF", "CURRENT", "VOLTAGE", "POWER", "RESISTANCE"][int(dat["comp"])]
+                for par in ["num", "delay"]:
+                    dat[par] = int(dat[par])
+                for par in ["value", "maxval", "minval"]:
+                    try:
+                        dat[par] = float(dat[par])
+                    except ValueError:
+                        dat[par] = "---"
+                ret.append(dat)
+            return ret if len(ret) > 1 else ret[0]
 
-        for row in params:
-            if isinstance(row, (list, tuple)):
-                self.LIST_row(*row)
-            elif isinstance(row, dict):
-                self.LIST_row(**row)
-            else:
-                raise ValueError(f"LIST 'params' must be a list, tuple or dict.")
-
-    def LIST_row(self, num, mode, value, delay, comp, maxval, minval):
+    def _LIST_row(self, num, mode, value, delay, comp, maxval, minval):
         "set a single paramter row in the LIST"
-
+       
         mode = {"CC": 0, "CV": 1, "CP": 2, "CR": 3, "OPEN": 4, "SHORT": 5}[mode.upper()]
         comp = {"OFF": 0, "CURRENT": 1, "VOLTAGE": 2, "POWER": 3, "RESISTANCE": 4}[
             comp.upper()
         ]
-        params = ", ".join(
+        params = ",".join(
             [str(x) for x in [num, mode, value, delay, comp, maxval, minval]]
         )
-        self.write(f"LIST{self.name}:PARAmeter {params}")
+        self.write(f"LIST{self.name}:PARA {params}")
 
     def LIST_loop(self, state=None):
         "get/ste loop state {ON|OFF}"
@@ -856,10 +922,39 @@ trigger:        {self.trigger_mode()}
         else:
             return self.query(f"LIST{self.name}:LOOP?")
 
-    def LIST_result(self, start, end):
+    def LIST_steps(self, steps=None):
+        "get/set number of steps to execute"
+        
+        if steps is not None:
+            self.write(f"LIST{self.name}:NUM {steps}")
+        else:
+            return _toint(self.query(f"LIST{self.name}:NUM?"))
+
+    def LIST_result(self):
         "return the final result after the list has finisehd {pass|fail}"
-        ret = self.query(f"LIST{self.name}:OUT? {start}, {end}")
-        return {"0": "NA", "1": "PASS", "2": "FAIL"}[ret]
+        
+        steps = self.LIST_steps()
+        response = self.query(f"LIST{self.name}:OUT? 1,{steps}", nrows=steps, timeout=2500)
+        ret = []
+        for line in response:
+            line = line.rstrip()
+            line = line[1:] if line.startswith("R") else line
+            fields = line.split(",")
+            dat = dict(
+                    zip(
+                        ("num", "mode", "value", "result", "maxval", "minval"), 
+                        fields))
+            dat["mode"] = ["CC", "CV", "CP", "CR", "OPEN", "SHORT"][int(dat["mode"])]
+            dat["result"]=["NA", "PASS","FAIL"][int(dat["result"])]
+            for par in ["num"]:
+                dat[par] = int(dat[par])
+            for par in ["value", "maxval", "minval"]:
+                try:
+                    dat[par] = float(dat[par])
+                except ValueError:
+                    dat[par] = "---"
+            ret.append(dat)
+        return ret if len(ret) > 1 else ret[0]
 
     ############################################################
     # Scan mode
@@ -873,6 +968,11 @@ trigger:        {self.trigger_mode()}
 
     ############################################################
     # Load effect test
+
+    # XXX: to be implemented
+    
+    ############################################################
+    # Lead compensation
 
     # XXX: to be implemented
 

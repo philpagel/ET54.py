@@ -51,11 +51,10 @@ device:
 | Battery mode               | ✓      |  
 | Trigger support            | ✓      |
 | Transient mode             | ✓      |  
-| List mode                  | —      |  
+| List mode                  | ✓      |  
 | Qualification test mode    | —      |  
-| File commands              | —      |
 | Load effect testing        | —      |
-| Remote compensation        | —      |
+| File commands              | —      |
 
 Basic functions are working and I'm in the process of
 implementing the more involved things.
@@ -130,20 +129,6 @@ This is how you connect to the load:
     el = ET54("ASRL/dev/ttyUSB1")
 
 Of course, you need to adapt it to the right device for your case.
-
-If you encounter problems, you can try to tweak a few parameters:
-
-| parameter | Description                                         |
-|---------- |---------------------------------------------------- |
-| baudrate  | must match baudrate set in device (default: 9600)   |
-| eol_r     | line terminator for reading from device             |
-| eol_W     | line terminator for writing to device               |
-| delay     | delay after read/write operation [s]                |
-| model     | model ID [ET5410/ET5420/ET541A+/...] <br> only required if `*IDN?` does not return a valid ID e.g. for Mustool branded ET5410A+ |
-
-The most likely candidate to fix weird problems is `delay`. The device manual
-does not specify what command frequency or processing time the instrument has
-so I found a value by trial and error.
 
 ## Channels
 
@@ -222,7 +207,7 @@ E.g. Constant current mode:
 
     el.ch1.CC_mode(2.8)         # switch to CC mode and set current to 2.8A
 
-    el.ch1.CC_curent()          # get CC current setting
+    el.ch1.CC_current()         # get CC current setting
     el.ch1.CC_current(1.5)      # set CC current to new value
 
 ## Reference
@@ -232,6 +217,46 @@ The full documentation is contained in the doc-strings of the class. Use
 
     python -m pydoc ET54
 
+## Trouble shooting
+
+The SCPI implementation in the instrument is a bit wonky. I spent a lot of time
+figuring out some peculiarities and have managed to fully crash the controller
+many times. Many of these problems had to do with timing (some commands are
+fast, others require some time before you may send a new command). The device
+is also very picky about white space. Finally, the SCPI documentation is obscure
+in some places and sometimes outright wrong.
+
+It is quite possible that different models and/or firmware or hardware
+revisions behave slightly different than my instrument. If you encounter
+problems, you can try tweaking a few parameters:
+
+| parameter  | Description                                               |
+|----------  |---------------------------------------------------------  |
+| `baudrate` | must match baudrate set in device (default: 9600)         |
+| `eol_r`    | line terminator for reading from device (default: "\r\n") |
+| `eol_w`    | line terminator for writing to device (default: "\n")     |
+| `delay`    | delay after read/write operation [s] (default: 0.2)       |
+| `timeout`  | timeout [ms] before giving up on `read` requests (default: 1000) |
+| `model`    | model ID [ET5410/ET5420/ET541A+/...] <br> only required if `*IDN?` does not return a valid ID e.g. for Mustool branded ET5410A+ |
+
+The most likely candidate to fix weird problems is `delay`. The device manual
+does not specify what command frequency or processing time the instrument has
+so I used the smallest value that allowed all my test cases to pass.
+
+Example:
+
+    el = ET54(delay=0.5, baudrate=14400)
+
+
+If you want to play with the device on raw metal and try some SCPI commands
+yourself, you can connect to it like so
+
+    tio -e -b 9600 -m INLCRNL,OCRNL /dev/ttyUSB0
+
+You can use other programs like minicom etc. Just make sure to get the weirdly
+inconsistent line terminators right.
+
+
 # Testing
 
 I use pytest to implement a bunch of test cases in order to verify everything
@@ -239,7 +264,7 @@ is working as intended. As the tests involve talking to actual hardware, you
 need to provide the necessary conditions for some tests to pass:
 
 1. `ET54_test.py`: the input terminals of the load must be shorted so that the
-   input voltage is 0.0V.
+   input voltage and current are 0.00
 2. `ET54_test_voltage`: the input terminals of the load must be connected to a
    power supply that provides 12.0 V and can deliver 1.5A.
 
