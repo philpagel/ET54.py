@@ -10,7 +10,7 @@ def test_measure():
     power supply delivering 12.0V @ > 1.5A
     """
 
-    for ch in el.channels:
+    for ch in el.Channels:
         ch.Vrange("low")    
         ch.Crange("low")    
         ch.CC_mode(1.5)

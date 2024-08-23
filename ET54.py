@@ -164,7 +164,6 @@ Trigger:        {self.trigger_mode()}
 Mode:           {mode}
 """
 
-        # XXX:
         match self.mode():
             case "CC":
                 ret += f"Current:        {self.CC_current()} A"
@@ -969,6 +968,11 @@ Mode:           {mode}
 
     ############################################################
     # Load effect test
+
+    # XXX: to be implemented
+    
+    ############################################################
+    # Lead compensation
 
     # XXX: to be implemented
 

@@ -53,9 +53,8 @@ device:
 | Transient mode             | ✓      |  
 | List mode                  | ✓      |  
 | Qualification test mode    | —      |  
-| File commands              | —      |
 | Load effect testing        | —      |
-| Remote compensation        | —      |
+| File commands              | —      |
 
 Basic functions are working and I'm in the process of
 implementing the more involved things.
