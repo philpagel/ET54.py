@@ -126,9 +126,11 @@ Here is a little example script that illustrates how things work:
 This is how you connect to the load:
 
     from ET54 import ET54
-    el = ET54("ASRL/dev/ttyUSB1")
+    el = ET54("ASRL/dev/ttyUSB1::INSTR")
 
 Of course, you need to adapt it to the right device for your case.
+See [here](https://pyvisa.readthedocs.io/en/1.8/names.html) for details on
+pyvise resource names.
 
 ## Channels
 
@@ -138,6 +140,11 @@ so:
 
     el.ch1.CR_mode(1000)
     el.ch1.on()
+
+or from he object's channel list:
+
+    print("number of channels: ", len(el.Channels))
+    el.Channels[0].CC_mode(8.0)
 
 Admittedly, most models only have one channel and the extra `.ch` part can get
 annoying. To make things a little shorter, you can assign the channel to a
@@ -195,6 +202,42 @@ can use the `__str__` method of the load object. E.g. by printing it:
     mode:           CC
     Current:        2.0 A
 
+This summary is especially helpful in the more advanced modes, e.g. LIST mode:
+
+    Model:          ET5410A+
+    Serial:         08772385097
+    Firmware:       V1.00.2213.016
+    Hardware:       V1.00.2213.016
+
+    Channel 1
+    Input state:    OFF
+    Voltage range:  HIGH
+    Current range:  HIGH
+    OCP:            42.0 A
+    OVP:            155.0 V
+    OPP:            120.0 W
+    Trigger:        TRG
+    Mode:           LIST
+    Loop:           OFF
+    Step mode:      TRIGGER
+    Steps:          5
+    List params:    num mode   value delay comp        maxval minval
+                      1 CC       4.5    30 VOLTAGE       15.0    8.5
+                      2 CV      13.5    60 CURRENT        1.0    0.1
+                      3 CV      18.5    45 VOLTAGE        2.0    0.2
+                      4 SHORT    ---    45 VOLTAGE        1.0    0.0
+                      5 OPEN     ---     5 OFF            0.0    0.0
+                      6 SHORT    ---     5 OFF            0.0    0.0
+                      7 CC       2.5     5 CURRENT        3.0    1.0
+                      8 CV      10.0     5 VOLTAGE       20.0    1.0
+                      9 CP      50.0     5 OFF            0.0    0.0
+                     10 CR     100.0     5 OFF            0.0    0.0
+    List results:   num mode   value result maxval minval
+                      1 CC       4.5 FAIL      2.0   15.0
+                      2 CV      13.5 NA        1.0    1.0
+                      3 CV      18.5 NA        2.0    2.0
+                      4 SHORT    --- NA        2.0    1.0
+                      5 OPEN     --- NA        0.0    0.0
 
 ## Some principles
 
