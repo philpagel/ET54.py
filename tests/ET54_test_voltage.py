@@ -11,8 +11,8 @@ def test_measure():
     """
 
     for ch in el.Channels:
-        ch.Vrange("low")    
-        ch.Crange("low")    
+        ch.Vrange = "low"
+        ch.Crange = "low"   
         ch.CC_mode(1.5)
         ch.on()
         time.sleep(0.5) # wait a moment for the current to stabilize

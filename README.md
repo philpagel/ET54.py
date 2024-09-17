@@ -92,13 +92,13 @@ Here is a little example script that illustrates how things work:
     el = ET54("ASRL/dev/ttyUSB1::INSTR")
 
     # set ranges
-    el.ch1.Vrange("high")
-    el.ch1.Crange("high")
+    el.ch1.Vrange = "high"
+    el.ch1.Crange = "high"
 
     # set protections
-    el.ch1.OVP(24.5)
-    el.ch1.OCP(4)
-    el.ch1.OPP(85)
+    el.ch1.OVP = 24.5
+    el.ch1.OCP = 4
+    el.ch1.OPP = 85
 
     # start in constant current mode (3.1A)
     el.ch1.CC_mode(3.1)
@@ -141,7 +141,7 @@ so:
     el.ch1.CR_mode(1000)
     el.ch1.on()
 
-or from he object's channel list:
+or from the object's channel list:
 
     print("number of channels: ", len(el.Channels))
     el.Channels[0].CC_mode(8.0)
@@ -170,10 +170,41 @@ If, for some reason, you prefer to just set the mode and then configure it
 separately, you can use `el.ch1.mode()` followed by the respective setup
 commands, instead.
 
+Once the input has been switched on, the respective mode is active. After that,
+you can still change some parameters but the device will refuse top change
+others.  Especially, you cannot switch to another mode seamlessly as the device
+will turn off the input upon mode changes. So this will *not* work:
+
+    el.ch1.CC(2)
+    el.ch1.on()
+    time.sleep(10)
+    el.ch1.CV(3.7)  # this will turn off the input!
+
+but this will:
+    
+    el.ch1.CC(2)
+    el.ch1.on()
+    time.sleep(10)
+    el.ch1.CC_current = 1.5
+    time.sleep(10)
+    el.ch1.CC_current = 1.0
+
+## Setting mode parameters
+
+All mode parameters can be set or queries independently of the `_mode` method by
+using the respective properties. E.g:
+
+    print(el.ch1.LED_voltage)
+    el.ch1.LED_current = 1.24
+    print(el.ch1.CRCV_resistance)
+    el.ch1.OCP = 5.2
+
+
 ## Reading data
 
 Once the load is set up and running, you can start reading measurement data
-from it. There are four parameters you can get:
+from it. In contrast to parameters, measurements are implemented as `read_`
+methods. There are four parameters you can get:
 
     el.ch1.read_voltage()
     el.ch1.read_current()
@@ -250,8 +281,8 @@ E.g. Constant current mode:
 
     el.ch1.CC_mode(2.8)         # switch to CC mode and set current to 2.8A
 
-    el.ch1.CC_current()         # get CC current setting
-    el.ch1.CC_current(1.5)      # set CC current to new value
+    el.ch1.CC_current           # get CC current setting
+    el.ch1.CC_current = 1.5     # set CC current to new value
 
 ## Reference
 
@@ -259,6 +290,9 @@ The full documentation is contained in the doc-strings of the class. Use
 `pydoc` to see all of it:
 
     python -m pydoc ET54
+    python -m pydoc ET54.instrument
+    python -m pydoc ET54.channel
+
 
 ## Trouble shooting
 
@@ -284,7 +318,9 @@ problems, you can try tweaking a few parameters:
 
 The most likely candidate to fix weird problems is `delay`. The device manual
 does not specify what command frequency or processing time the instrument has
-so I used the smallest value that allowed all my test cases to pass.
+so I used the smallest value that allowed all my test cases to pass. I also
+asked ET support about it and the answer was "The time interval should be above
+200ms" which matches my own observations, but your mileage may vary.
 
 Example:
 
