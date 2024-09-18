@@ -16,8 +16,9 @@ el = ET54(RID)
 el.reset()
 sleep(5)
 
+el.off()
+
 for ch in el.Channels:
-    ch.off()
     ch.CC_mode(0.1)
     # most tests assum `high` range, so set it
     ch.Vrange = "high"
@@ -39,6 +40,14 @@ def test_write():
 
 def test_input_state():
     "setting and getting channel on/off state"
+
+    el.on()
+    for ch in el.Channels:
+        assert ch.input == "on"
+    
+    el.off()
+    for ch in el.Channels:
+        assert ch.input == "off"
 
     for ch in el.Channels:
         ch.CC_mode(0.1)

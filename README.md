@@ -90,7 +90,7 @@ for i in range(60):
 el.ch1.off()
 ```
 
-## Known issues
+# Known issues
 
 * SCAN mode is implemented but I don't understand, how to retrieve the result
   of the comparison. 
@@ -163,6 +163,10 @@ The instrument instance provides the following methods.
 
     # send trigger event
     el.trigger()
+
+    # turn all inputs on/off
+    el.on()
+    el.off()
 
     # query fan state
     el.fan()

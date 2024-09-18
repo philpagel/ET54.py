@@ -154,4 +154,12 @@ Hardware:       {self.idn['hardware']}
         "return fan state"
         return self.query("SELF:FAN?")
 
-
+    def on(self):
+        "turn on all inputs"
+        for ch in self.Channels:
+            ch.on()
+    
+    def off(self):
+        "turn of all inputs"
+        for ch in self.Channels:
+            ch.off()
