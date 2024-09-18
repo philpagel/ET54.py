@@ -1,6 +1,6 @@
 import pytest, time
 from ET54 import ET54
-from testconfig import *
+from .testconfig import *
 
 el = ET54(RID)
 

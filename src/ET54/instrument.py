@@ -133,6 +133,14 @@ Hardware:       {self.idn['hardware']}
     def beep(self):
         "Beep"
         self.write("SYST:BEEP")
+    
+    def reset(self):
+        "Reset device to default"
+        self.connection.write("RST")
+
+    def trigger(self):
+        "send trigger event"
+        self.connection.write("TRG")
 
     def unlock(self):
         """unlock the local interface
