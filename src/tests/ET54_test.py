@@ -1,4 +1,5 @@
 import pytest
+from time import sleep
 from ET54 import ET54
 from .testconfig import *
 
@@ -12,6 +13,8 @@ parameters = [
 
 
 el = ET54(RID)
+el.reset()
+sleep(5)
 
 for ch in el.Channels:
     ch.off()
@@ -374,16 +377,16 @@ def testLISTmode_result():
         ch.LIST_result
 
 @pytest.mark.parametrize(
-        "mode,threshold,threshold_value,compare,limits,start_end,step,time",
+        "mode,threshold,threshold_value,compare,limits,start_end,step,delay",
         [
             ("CC", "VTH", 1.5, "INCURR", (0.5, 1.2), (0, 5), 0.5, 5),
             ("CP", "VMIN", 2.5, "INVOLT", (2, 5), (1.5, 3.5), 1, 5),
         ]
         )
-def testSCANmode(mode,threshold,threshold_value,compare,limits,start_end,step,time):
+def testSCANmode(mode,threshold,threshold_value,compare,limits,start_end,step,delay):
     "Basic test if setup is refected in parameters"
     for ch in el.Channels:
-        ch.SCAN_mode(mode, threshold, threshold_value, compare, limits, start_end, step, time)
+        ch.SCAN_mode(mode, threshold, threshold_value, compare, limits, start_end, step, delay)
         assert ch.SCAN_submode == mode
         assert ch.SCAN_threshold == threshold
         assert ch.SCAN_threshold_value == threshold_value
@@ -391,7 +394,7 @@ def testSCANmode(mode,threshold,threshold_value,compare,limits,start_end,step,ti
         assert ch.SCAN_limits == limits
         assert ch.SCAN_start_end == start_end
         assert ch.SCAN_step == step
-        assert ch.SCAN_steptime == time
+        assert ch.SCAN_stepdelay == delay
 
 @pytest.mark.parametrize(
         "Vrange, Crange, Prange, result",

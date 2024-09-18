@@ -1,6 +1,6 @@
 "Electronic load input channel"
 
-from .support_functions import _toint, _tofloat, _tofloats, _value_extend 
+from ._support_functions import _toint, _tofloat, _tofloats, _value_extend 
 
 class channel:
     "input channel"
@@ -21,6 +21,12 @@ OCP:            {self.OCP} A
 OVP:            {self.OVP} V
 OPP:            {self.OPP} W
 Trigger:        {self.trigger_mode}
+
+Qualification:  {self.QUALI_state}
+Quali  Vrange:  {self.QUALI_Vrange} V
+Quali  Crange:  {self.QUALI_Crange} A
+Quali  Prange:  {self.QUALI_Prange} W
+
 Mode:           {mode}
 """
 
@@ -48,8 +54,8 @@ Mode:           {mode}
             case "BATT":
                 submode = self.BATT_submode()
                 cutoff = self.BATT_cutoff()
-                ret += f"submode:        {submode}\n"
-                ret += f"cutoff:         {cutoff}\n"
+                ret += f"submode:        {self.BATT_submode}\n"
+                ret += f"cutoff:         {self.BATT_cutoff}\n"
                 if submode == "CC":
                     ret += f"current:        {self.BATT_current} A\n"
                 elif submode == "CR":
@@ -64,7 +70,7 @@ Mode:           {mode}
                     ret += f"cutoff_value:   {self.BATT_cutoff_value} Ah\n"
             case "TRAN":
                 submode = self.TRANSIENT_submode
-                ret += f"submode:        {submode}\n"
+                ret += f"submode:        {seld.TRANSIENT_submode}\n"
                 ret += f"trigmode:       {self.TRANSIENT_trigmode}\n"
                 if submode == "CC":
                     ret += f"current:        {self.TRANSIENT_current} V\n"
@@ -95,7 +101,14 @@ Mode:           {mode}
                     ret += f"{row['maxval']:6} "
                     ret += f"{row['minval']:6}\n"
             case "SCAN":
-                pass # XXX
+                ret += f"submode:        {self.SCAN_submode}\n"
+                ret += f"threshold type: {self.SCAN_threshold}\n"
+                ret += f"threshold value:{self.SCAN_threshold_value}\n"
+                ret += f"Comparison:     {self.SCAN_compare}\n"
+                ret += f"Limits          {self.SCAN_limits}\n"
+                ret += f"Start, end:     {self.SCAN_start_end}\n"
+                ret += f"Step:           {self.SCAN_step}\n"
+                ret += f"Step time:      {self.SCAN_step_time}\n"
 
         return ret
 
@@ -214,8 +227,9 @@ Mode:           {mode}
         OV      OCP triggered
         OC      OCP triggered
         OP      OPP triggered
-        LRV     reverse voltage protection triggered
         OT      Overtemp protection triggered
+        LRV     reverse voltage protection triggered
+        FAN     Fan failure
         """
         return self.query(f"LOAD{self.name}:ABNO?")
 
@@ -360,11 +374,11 @@ Mode:           {mode}
     ############################################################
     # LED mode
 
-    def LED_mode(self, V0, I0, coef):
+    def LED_mode(self, V, I, coef):
         "Configure LED mode"
 
-        self.LED.voltage = V0
-        self.LED.current = I0
+        self.LED.voltage = V
+        self.LED.current = I
         self.LED_coefficient = coef
         self.mode = "LED"
 
@@ -866,7 +880,17 @@ Mode:           {mode}
         step,
         step_time,
     ):
-        """configure SCAN mode"""
+        """configure SCAN mode
+        
+        Load will in `mode` and increment voltage|current|power depending on
+        `compare` in the increments defined by `step` starting from
+        `start_end[0]` to `start_end[1]`.  `step_delay` defines how long the
+        load will stay at each step.
+        
+        While stepping through these settings, it will check if the value of
+        `compare` (V|A|W) are within the `limits` or not. The result of this tst is 
+        shown on the display, 
+        """
 
         self.SCAN_submode = mode
         self.SCAN_threshold = threshold
@@ -875,7 +899,7 @@ Mode:           {mode}
         self.SCAN_limits = limits
         self.SCAN_start_end = start_end
         self.SCAN_step = step
-        self.SCAN_steptime = step_time
+        self.SCAN_stepdelay = step_time
         self.mode = "SCAN"
 
     @property
@@ -889,7 +913,7 @@ Mode:           {mode}
 
     @property
     def SCAN_threshold(self):
-        "scan threshold type {VTH|DROP|VMIN}"
+        "Scan threshold type {VTH|DROP|VMIN}"
         return self.query(f"SCAN{self.name}:THTYPE?")
 
     @SCAN_threshold.setter
@@ -920,7 +944,7 @@ Mode:           {mode}
 
     @property
     def SCAN_compare(self):
-        "comparison type {INCURR|INVOLT|INPOW}"
+        "comparison type {INCURR|INVOLT|INPOW|OFF}"
         return self.query(f"SCAN{self.name}:COMPARE?")
 
     @SCAN_compare.setter
@@ -1026,12 +1050,12 @@ Mode:           {mode}
                 self.write(f"POWE{self.name}:STEP {value}")
 
     @property
-    def SCAN_steptime(self):
-        "step time [s] for SCAN mode"
+    def SCAN_stepdelay(self):
+        "step delay [s] for SCAN mode"
         return _toint(self.query(f"TIME{self.name}:STEP?"))
 
-    @SCAN_steptime.setter
-    def SCAN_steptime(self, time):
+    @SCAN_stepdelay.setter
+    def SCAN_stepdelay(self, time):
         self.write(f"TIME{self.name}:STEP {time}")
 
     ############################################################

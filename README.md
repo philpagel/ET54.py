@@ -2,44 +2,27 @@
 
 Python class for remote controlling EastTester ET54 series electronic loads.
 
-# Supported models
-
-This *should* work with all of the following devices:
-
-* ET5410
-* ET5411
-* ET5420
-* ET5410A+
-* ET5411A+
-* ET5420A+
-
-And possibly also with these:
-
-* ET5406A+
-* ET5407A+
-
-Testing was carried out on my ET5410A+. However, I have no access to any of the
-other models. If you own one of them and are willing to do some testing, please
-get in touch.
-
-There are *Mustool* branded version of the ET5410A+ and possibly also of the
-other models. These devices run a modified firmware and return an uninformative
-model ID (`xxxxxx`) in response to the `*IDN?` SCPI command. To make these
-devices work, you need to explicitly provide the model ID when initializing the
-device:
-
-    from ET54 import ET54
-    el = ET54("ASRL/dev/ttyUSB0", model="ET5410A+")
-
+*Should* work with ET5410, ET5411, ET5420, ET5410A+, ET5411A+, ET5420A+,
+ET5406A+, ET5407A+
 
 # Status
+
+"Works on my machine" (ET5410A+, LINUX). Needs a lot more
+real world testing:
+
+* in actual circuits (does the load realy do what I think?)
+* with all the different models of the series
+* on Windows and MacOS
+
+Most modes of operation and all measurements have been implemented:
 
 | Feature                    | Status |
 |--------------------------- |------- |
 | Input on/off               | ✓      |
 | Voltage and current ranges | ✓      |
-| V/A/R/P readout            | ✓      |  
 | OCP, OVP, OPP              | ✓      |
+| Trigger support            | ✓      |
+| V/A/P/R readout            | ✓      |  
 | CC mode                    | ✓      |
 | CV mode                    | ✓      |
 | CP mode                    | ✓      |
@@ -49,259 +32,372 @@ device:
 | Short mode                 | ✓      |  
 | LED mode                   | ✓      |  
 | Battery mode               | ✓      |  
-| Trigger support            | ✓      |
 | Transient mode             | ✓      |  
 | List mode                  | ✓      |  
-| Qualification test mode    | —      |  
+| SCAN mode                  | (✓)    |  
+| Qualification test mode    | ✓      |  
 | Load effect testing        | —      |
 | File commands              | —      |
+| System setup               | —      |
 
-Basic functions are working and I'm in the process of
-implementing the more involved things.
 
-Trying to set invalid values will raise an exception (e.g. `RuntimeError` or
-`ValueError`) based on the load's response and a few checks of my own.
-
-I am pretty confident that the values that you set with this class are
-correctly stored by the instrument because that's what all my test cases check
-for.  However, I have not yet tested all functionality in enough real-live
-circuits to be 100% confident that the load actually always behaves as
-expected. If not, that may be a bug on my side or a problem in the device
-firmware.
-
-# Dependencies
-
-The class requires `pyserial`, `pyvisa` and `pyvisa-py`, all of which can be
-installed with pip:
-
-    python -m pip install -r requirements.txt
-
-If you want to run the automated tests you will also need `pytest`.
-
-# Usage
-
-## In a Nutshell
+# In a Nutshell
 
 Here is a little example script that illustrates how things work:
 
-    #!/bin/env python3
-    import time, datetime
-    from ET54 import ET54
+```{python}
+#!/bin/env python3
+import time, datetime
+from ET54 import ET54
 
-    # connect to the load
-    el = ET54("ASRL/dev/ttyUSB1::INSTR")
+# connect to the load
+el = ET54("ASRL/dev/ttyUSB1::INSTR")
 
-    # set ranges
-    el.ch1.Vrange = "high"
-    el.ch1.Crange = "high"
+# set ranges
+el.ch1.Vrange = "high"
+el.ch1.Crange = "high"
 
-    # set protections
-    el.ch1.OVP = 24.5
-    el.ch1.OCP = 4
-    el.ch1.OPP = 85
+# set protections
+el.ch1.OVP = 24.5
+el.ch1.OCP = 4
+el.ch1.OPP = 85
 
-    # start in constant current mode (3.1A)
-    el.ch1.CC_mode(3.1)
-    el.ch1.on()
-    
-    # monitor voltage, current, power and resistance for a minute
-    print("timestamp, V, I, P, R")
-    for i in range(60):
-        print(", ".join([str(x) for x in [
-            datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            el.ch1.read_voltage(),
-            el.ch1.read_current(),
-            el.ch1.read_power(),
-            el.ch1.read_resistance(),
-        ]]))
-        time.sleep(1)
+# start in constant current mode (3.1A)
+el.ch1.CC_mode(3.1)
+el.ch1.on()
 
-    # turn off the load channel
-    el.ch1.off()
+# switch to CCCV mode
+el.ch1.CCCV_mode(2.5, 13.5)
+# and change the current on the way
+el.ch1.CCCV.current = 1.25
 
-## Some more details
+# monitor voltage, current, power and resistance for a minute
+print("timestamp, V, I, P, R")
+for i in range(60):
+    print(", ".join([str(x) for x in [
+        datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        el.ch1.read_voltage(),
+        el.ch1.read_current(),
+        el.ch1.read_power(),
+        el.ch1.read_resistance(),
+    ]]))
+    time.sleep(1)
 
-### Connecting
+# turn off the load channel
+el.ch1.off()
+```
+
+## Known issues
+
+* SCAN mode is implemented but I don't understand, how to retrieve the result
+  of the comparison. 
+* Sometimes, the instrument takes a long time to respond which makes some tests
+  fail randomly (typically `LIST_mode`).
+* During `BATT_mode` tests, the device display looks weird at times.
+* Display shows weird numbers when setting `TRANSIENT_width` values.
+
+Some of these may be firmware quirks, others are probably my fault.
+
+
+# Installation
+
+1. Download the latest release package (` et54-XXX.tar.gz `) from github.
+2. If you want to install in a virtual environment, first, create and activate it:
+```
+python -m venv .venv
+source .venv/bin/activate
+```
+3. Install the package (replace *XXX* with the correct number)
+```
+python -m pip install et54-XXX.tar.gz
+```
+
+
+# Reference
+
+The following sections give a tour of available functionality.  Detailed
+api-documentation is given in the doc-strings of the classes. Use `pydoc` to
+access it:
+
+    python -m pydoc ET54
+    python -m pydoc ET54.instrument
+    python -m pydoc ET54.channel
+
+For questions about valid values for all commands and general use of the
+device, please refer to the manufacturers *user manual* and/or [*scpi
+manual*](documents/ET54A+_SCPI.pdf).
+
+## Connecting
     
 This is how you connect to the load:
 
     from ET54 import ET54
     el = ET54("ASRL/dev/ttyUSB1::INSTR")
 
+Or, on windows:
+
+    from ET54 import ET54
+    el = ET54("ASRL2::INSTR")
+
 Of course, you need to adapt it to the right device for your case.
 See [here](https://pyvisa.readthedocs.io/en/1.8/names.html) for details on
-pyvise resource names.
+pyvisa resource names.
+
+## Instrument
+
+The instrument instance provides the following methods.
+
+    # sound a beep
+    el.beep()
+    
+    # reset to default
+    el.reset()
+
+    # unlock the keypad
+    # usually not advisable!
+    el.unlock()
+    # the next command will automatically lock again
+
+    # send trigger event
+    el.trigger()
+
+    # query fan state
+    el.fan()
+
+    # Write SCPI command to connection and check status
+    # e.g. set channel 1 CV mode voltage setting to 12.5V
+    el.query("VOLT1:CV 12.5")
+    
+    # Write SCPI command to connection and return answer value
+    # e.g. query channel 1 CV mode voltage setting
+    el.query("VOLT1:CV?")
+
+    # print device and status information
+    print(el)
+
 
 ## Channels
 
-The load object itself does not do many exciting things. For the actual work,
-it has one or two channels (depending on your model). You can access them like
-so:
+The instrument object has one or two channel, depending on your model. Channel
+objects can be accessed directly (`el.ch1`, `el.ch2`) or from the
+channel list (`el.Channels[0]`).
 
-    el.ch1.CR_mode(1000)
+Each channel provides lots of attributes and methods for configuring different
+modes of operation, measuring etc.  All parameters that are part of the
+configuration object attributes and can be read and set just
+like any other Python variable:
+
+    my_OCP_value = el.ch1.OCP
+    el.ch1.ocp = 12.8
+
+There are a few exceptions that are read-only.
+
+Measurements, on the other hand, are represented as functions (methods) that return
+a measurement value when called. E.g.
+
+    el.ch1.read_current()
+
+Obviously, these cannot be set.
+
+
+### Basic operation
+
+    # Turn input on/off
     el.ch1.on()
-
-or from the object's channel list:
-
-    print("number of channels: ", len(el.Channels))
-    el.Channels[0].CC_mode(8.0)
-
-Admittedly, most models only have one channel and the extra `.ch` part can get
-annoying. To make things a little shorter, you can assign the channel to a
-variable and use that directly:
-
-    ch = el.ch1
-    ch.CR_mode(1000)
-    ch.on()
-
-## Mode setup
-
-All `*_mode()` methods will put the load into the respective mode and set
-all relevant parameters so you don't have to do the configuration separately.
-E.g. for CCCV mode:
-
-    el.ch1.CCCV_mode(current=1.5, voltage=24)
-
-or just 
+    el.ch1.off()
     
-    el.ch1.CCCV_mode(1.5, 24)
+    # or
+    el.ch1.input = "ON"
+    el.ch1.input = "OFF"
 
-If, for some reason, you prefer to just set the mode and then configure it
-separately, you can use `el.ch1.mode()` followed by the respective setup
-commands, instead.
+    # query input state
+    print(el.ch1.input)
 
-Once the input has been switched on, the respective mode is active. After that,
-you can still change some parameters but the device will refuse top change
-others.  Especially, you cannot switch to another mode seamlessly as the device
-will turn off the input upon mode changes. So this will *not* work:
+### Trigger setup
 
-    el.ch1.CC(2)
-    el.ch1.on()
-    time.sleep(10)
-    el.ch1.CV(3.7)  # this will turn off the input!
+    # set manual trigger (*Trg* button on keypad)
+    el.ch1.trigger_mode = "MAN"
 
-but this will:
+    # set external trigger (connector at back of the instrument)
+    el.ch1.trigger_mode = "EXT"
+
+    # set software trigger (`el.trigger()`)
+    el.ch1.trigger_mode = "TRG"
+
+### Protection
+
+The load provides configurable protection against over-current, over-voltage
+and over-power. They can be set like this:
+
+    el.ch1.OVP = 12.5
+    el.ch1.OCP = 3.2
+    el.ch1.OPP = 35
+
+The values can also be queried:
+
+    >>> el.ch1.OVP
+    155.0
+    >>> el.ch1.OCP
+    42.0
+
+Query the state of all protections (including no-configurable over-temperature
+and reverse-polarity protection):
+
+    >>> el.ch1.protection
+    'NONE'
+
+
+### Configuring modes of operation
+
+There are two different ways to configure a mode:
+
+1. Use the `mode` method and set all parameters separately
+2. Use Individual `XXX_mode` configuration methods that take all parameters as
+   arguments.
+
+Example: configure CC mode
+
+    el.ch1.CC_current = 2.5
+    el.ch1.mode = "CC"
+
+or
+
+    el.ch1.CC_mode(2.5)
+
+Both will have the same effect. Both allow changing any parameter after setup.
+
+### Short mode
+
+Short circuit mode takes no parameters.
+
+    el.ch1.SHORT_mode()
+
+
+### CC, CV, CR, CP
+
+These modes take a single parameter that defines the desired current, voltage, ...
+
+    # 3 A constant current
+    el.ch1.CC_mode(3)
+
+    # 12.5V constant voltage
+    el.ch1.CV_mode(12.5)
+
+    # 100 Ohm constant resistance
+    el.ch1.CR_mode(100)
+
+    # 50W constant power
+    el.ch1.CP_mode(50)
+
+Or set them up sequentially:
+
+    # 3 A constant current
+    el.ch1.CC_current = 3
+    el.ch1.mode = "CC"
+
+    # 12.5V constant voltage
+    el.ch1.CV_voltage = 12.5
+    el.ch1.mode = "CV"
     
-    el.ch1.CC(2)
-    el.ch1.on()
-    time.sleep(10)
-    el.ch1.CC_current = 1.5
-    time.sleep(10)
-    el.ch1.CC_current = 1.0
+    # 100 Ohm constant resistance
+    el.ch1.CR_resistance = 100
+    el.ch1.mode = "CR"
 
-## Setting mode parameters
+    # 50W constant power
+    el.ch1.CP_power = 50
+    el.ch1.mode = "CP"
 
-All mode parameters can be set or queries independently of the `_mode` method by
-using the respective properties. E.g:
 
-    print(el.ch1.LED_voltage)
-    el.ch1.LED_current = 1.24
-    print(el.ch1.CRCV_resistance)
-    el.ch1.OCP = 5.2
+### CCCV, CRCV
 
+As the name suggests, these modes combine two of the basic modes and require
+two parameters.
+
+    # 2.0A, 12.5V in CC+CV mode
+    # all of these are equivalent:
+    el.ch1.CCCV(2, 12.5)
+    el.ch1.CCCV(current=2, voltage=12.5)
+    el.ch1.CCCV(voltage=12.5, current=2)
+
+    # CRCV 100 Ohm, 13.5V
+    # all of these are equivalent:
+    el.ch1.CRCV(100, 13.5)
+    el.ch1.CRCV(resistance=100, voltage=13.5)
+
+
+### LED simulation mode
+
+LED simulation mode is defined by three parameters:
+
+* Current
+* Voltage
+* Coefficient
+
+```
+el.ch1.LED_mode(V=8.1, I=0.8, coef=0.5)
+```
+or
+
+    el.ch1.LED_voltage = 8.1
+    el.ch1.LED_current = 0.8
+    el.ch1.LED_coeff = 0.5
+    el.ch1.mode = "LED"
+
+
+### Battery test mode
+
+XXX: write me
+
+    el.ch1.BATT_mode(mode, value, cutoff, cutoff_value)
+
+### Transient mode
+
+XXX: write me
+
+    el.ch1.TRANSIENT_mode(mode, trigmode, value, width)
+
+### List mode
+
+XXX: write me
+
+    el.ch1.LIST_mode(stepmode, params)
+
+### Scan mode
+
+XXX: write me
+
+    el.ch1.SCAN_mode(mode, threshold, threshold_value, compare, limits, start_end, step, step_time)
+
+### Qualification testing
+
+XXX: write me
+
+    el.ch1.QUALI_mode(Vrange, Crange, Prange)
+
+
+### Load effect testing
+
+XXX – not implemented, yet
 
 ## Reading data
 
-Once the load is set up and running, you can start reading measurement data
+Once the load is set up, you can start reading measurement data
 from it. In contrast to parameters, measurements are implemented as `read_`
-methods. There are four parameters you can get:
+methods. There are four quantities you can measure:
 
-    el.ch1.read_voltage()
-    el.ch1.read_current()
-    el.ch1.read_power()
-    el.ch1.read_resistance()
-
-## Summary information
-
-You can get all kinds of information form the various methods but if you
-would like to see a human-readable summary of the device and its state, you 
-can use the `__str__` method of the load object. E.g. by printing it:
-
-    >>> print(el)
-    Model:          ET5410A+
-    Serial:         08772385097
-    Firmware:       V1.00.2213.016
-    Hardware:       V1.00.2213.016
-
-    Channel 1
-    Input state:    OFF
-    Voltage range:  HIGH
-    Current range:  HIGH
-    OCP:            42.0 A
-    OVP:            155.0 V
-    OPP:            410.0 W
-    mode:           CC
-    Current:        2.0 A
-
-This summary is especially helpful in the more advanced modes, e.g. LIST mode:
-
-    Model:          ET5410A+
-    Serial:         08772385097
-    Firmware:       V1.00.2213.016
-    Hardware:       V1.00.2213.016
-
-    Channel 1
-    Input state:    OFF
-    Voltage range:  HIGH
-    Current range:  HIGH
-    OCP:            42.0 A
-    OVP:            155.0 V
-    OPP:            120.0 W
-    Trigger:        TRG
-    Mode:           LIST
-    Loop:           OFF
-    Step mode:      TRIGGER
-    Steps:          5
-    List params:    num mode   value delay comp        maxval minval
-                      1 CC       4.5    30 VOLTAGE       15.0    8.5
-                      2 CV      13.5    60 CURRENT        1.0    0.1
-                      3 CV      18.5    45 VOLTAGE        2.0    0.2
-                      4 SHORT    ---    45 VOLTAGE        1.0    0.0
-                      5 OPEN     ---     5 OFF            0.0    0.0
-                      6 SHORT    ---     5 OFF            0.0    0.0
-                      7 CC       2.5     5 CURRENT        3.0    1.0
-                      8 CV      10.0     5 VOLTAGE       20.0    1.0
-                      9 CP      50.0     5 OFF            0.0    0.0
-                     10 CR     100.0     5 OFF            0.0    0.0
-    List results:   num mode   value result maxval minval
-                      1 CC       4.5 FAIL      2.0   15.0
-                      2 CV      13.5 NA        1.0    1.0
-                      3 CV      18.5 NA        2.0    2.0
-                      4 SHORT    --- NA        2.0    1.0
-                      5 OPEN     --- NA        0.0    0.0
-
-## Some principles
-
-The philosophy of the class is that there are no separate getter and setter
-methods. Instead, most methods will return the latest setting and set
-it if you provide an argument. Method names start with the mode
-or functionality.
-
-E.g. Constant current mode:
-
-    el.ch1.CC_mode(2.8)         # switch to CC mode and set current to 2.8A
-
-    el.ch1.CC_current           # get CC current setting
-    el.ch1.CC_current = 1.5     # set CC current to new value
-
-## Reference
-
-The full documentation is contained in the doc-strings of the class. Use
-`pydoc` to see all of it:
-
-    python -m pydoc ET54
-    python -m pydoc ET54.instrument
-    python -m pydoc ET54.channel
+    V = el.ch1.read_voltage()
+    I = el.ch1.read_current()
+    P = el.ch1.read_power()
+    R = el.ch1.read_resistance()
 
 
-## Trouble shooting
+# Trouble shooting
 
 The SCPI implementation in the instrument is a bit wonky. I spent a lot of time
 figuring out some peculiarities and have managed to fully crash the controller
 many times. Many of these problems had to do with timing (some commands are
-fast, others require some time before you may send a new command). The device
-is also very picky about white space. Finally, the SCPI documentation is obscure
-in some places and sometimes outright wrong.
+fast, others require some time before you may send a new command). The SCPI
+documentation by the manufacturer is a bit obscure and incomplete in some places.
 
 It is quite possible that different models and/or firmware or hardware
 revisions behave slightly different than my instrument. If you encounter
@@ -324,8 +420,10 @@ asked ET support about it and the answer was "The time interval should be above
 
 Example:
 
-    el = ET54(delay=0.5, baudrate=14400)
+    el = ET54("ASRL/dev/ttyUSB0", delay=0.5, baudrate=14400)
 
+
+## Talking to the device directly
 
 If you want to play with the device on raw metal and try some SCPI commands
 yourself, you can connect to it like so
@@ -335,36 +433,24 @@ yourself, you can connect to it like so
 You can use other programs like minicom etc. Just make sure to get the weirdly
 inconsistent line terminators right.
 
+*Caution:* The device uses an internal usb2serial device (*QinHeng Electronics
+CH340 serial converter*) which is detected by the operation system even if the
+load is turned off. There is nothing I can do about that. Obviously, you cannot
+talk to the device in that state. 
 
-# Testing
 
-I use pytest to implement a bunch of test cases in order to verify everything
-is working as intended. As the tests involve talking to actual hardware, you
-need to provide the necessary conditions for some tests to pass:
+## Mustool branded devices
 
-1. `ET54_test.py`: the input terminals of the load must be shorted so that the
-   input voltage and current are 0.00
-2. `ET54_test_voltage`: the input terminals of the load must be connected to a
-   power supply that provides 12.0 V and can deliver 1.5A.
+There are *Mustool* branded versions of the ET5410A+ and possibly also of the
+other models. These devices run a modified firmware and return an unhelpful
+model ID (`xxxxxx`) in response to the `*IDN?` SCPI command. To make these
+devices work, you need to explicitly provide the model ID when initializing the
+device:
 
-Install pytest
+    from ET54 import ET54
+    el = ET54("ASRL/dev/ttyUSB0", model="ET5410A+")
 
-    python -m pip install pytest
 
-To run the tests:
-    
-    # Short the input and run:
-    pytest -v ET54_test.py
-
-    # connect PSU (12V, >1.5A) an run:
-    pytest -v ET54_test_voltage.py
-
-As the load has no external sensing wires, the length and diameter of your test
-leads matter. Keep them short and as big as you can. Using the lead
-compensation feature of the device before starting the tests may help, too.
-
-Currently, only channel 1 of the load is tested, even if you have a
-2-channel device.
 
 # Contributing
 
@@ -377,8 +463,9 @@ behavior at least once before opening an issue and provide all information
 necessary to replicate the problem (what commands did you use, what was
 connected to the load, what did you observe, what did you expect?).
 
-I would very much appreciate help from people who own any of the models listed
-above (other than the ET5410A+) – no coding skills required: I just need people
-to run the tests on these devices and report the results back to me. Get in
-touch if you would like to do that.
+I would very much appreciate help from people who own any of the various models
+listed above: It would be great if they could run the automated tests on their
+devices and let me know if that went fine or produced errors. Please get in
+touch if you would like to do that. Also any feedback and bug reports are
+welcome.
 

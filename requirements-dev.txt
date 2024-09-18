@@ -1,0 +1,5 @@
+pytest
+build
+wheel
+setuptools
+twine
