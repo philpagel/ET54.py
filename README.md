@@ -7,6 +7,9 @@ ET5406A+, ET5407A+
 
 # Status
 
+
+[![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
+
 "Works on my machine" (ET5410A+, LINUX). Needs a lot more
 real world testing:
 
