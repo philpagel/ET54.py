@@ -9,9 +9,9 @@ ET5406A+, ET5407A+
 
 
 [![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
+(ET5410A+, LINUX). 
 
-"Works on my machine" (ET5410A+, LINUX). Needs a lot more
-real world testing:
+Needs a lot more real world testing:
 
 * in actual circuits (does the load realy do what I think?)
 * with all the different models of the series
@@ -72,7 +72,7 @@ el.ch1.on()
 # switch to CCCV mode
 el.ch1.CCCV_mode(2.5, 13.5)
 # and change the current on the way
-el.ch1.CCCV.current = 1.25
+el.ch1.CCCV_current = 1.25
 
 # monitor voltage, current, power and resistance for a minute
 print("timestamp, V, I, P, R")
@@ -173,7 +173,7 @@ The instrument instance provides the following methods.
 
     # Write SCPI command to connection and check status
     # e.g. set channel 1 CV mode voltage setting to 12.5V
-    el.query("VOLT1:CV 12.5")
+    el.write("VOLT1:CV 12.5")
     
     # Write SCPI command to connection and return answer value
     # e.g. query channel 1 CV mode voltage setting
@@ -185,13 +185,13 @@ The instrument instance provides the following methods.
 
 ## Channels
 
-The instrument object has one or two channel, depending on your model. Channel
+The instrument object has one or two channels, depending on your model. Channel
 objects can be accessed directly (`el.ch1`, `el.ch2`) or from the
 channel list (`el.Channels[0]`).
 
 Each channel provides lots of attributes and methods for configuring different
 modes of operation, measuring etc.  All parameters that are part of the
-configuration object attributes and can be read and set just
+configuration object are implemented as attributes and can be read and set just
 like any other Python variable:
 
     my_OCP_value = el.ch1.OCP
@@ -254,6 +254,18 @@ and reverse-polarity protection):
     'NONE'
 
 
+### Ranges
+
+The device has two ranges (`HIGH`, `LOW`) for both voltage and current.
+
+    el.ch1.Vrange = "high"
+    el.ch1.Crange = "low"
+
+    >>> el.ch1.Vrange
+    "HIGH"
+
+
+
 ### Configuring modes of operation
 
 There are two different ways to configure a mode:
@@ -282,7 +294,7 @@ Short circuit mode takes no parameters.
 
 ### CC, CV, CR, CP
 
-These modes take a single parameter that defines the desired current, voltage, ...
+These modes take a single parameter that defines the desired current, voltage, resistance or power.
 
     # 3 A constant current
     el.ch1.CC_mode(3)
@@ -318,7 +330,12 @@ Or set them up sequentially:
 ### CCCV, CRCV
 
 As the name suggests, these modes combine two of the basic modes and require
-two parameters.
+two parameters:
+
+    el.ch1.CCCV_mode(current, voltage):
+    el.ch1.CRCV_mode(resistance, voltage):
+
+So here is how to call them:
 
     # 2.0A, 12.5V in CC+CV mode
     # all of these are equivalent:
@@ -331,43 +348,166 @@ two parameters.
     el.ch1.CRCV(100, 13.5)
     el.ch1.CRCV(resistance=100, voltage=13.5)
 
+As you can see, you can eihter give all arguments in the correct order, or
+explicitly use their names, in which case the order is not important.
+
 
 ### LED simulation mode
 
-LED simulation mode is defined by three parameters:
+LED simulation mode is defined by three parameters: Current, Voltage and
+Coefficient. See user mnaual for how these play together.
 
-* Current
-* Voltage
-* Coefficient
+    el.ch1.LED_mode(V, I, coef)
 
-```
-el.ch1.LED_mode(V=8.1, I=0.8, coef=0.5)
-```
+Examples:
+
+    el.ch1.LED_mode(V=8.1, I=0.8, coef=0.2)
 or
 
     el.ch1.LED_voltage = 8.1
     el.ch1.LED_current = 0.8
-    el.ch1.LED_coeff = 0.5
+    el.ch1.LED_coeff = 0.2
     el.ch1.mode = "LED"
 
 
 ### Battery test mode
-
-XXX: write me
+    
+Battery test mode accepts several parameters:
 
     el.ch1.BATT_mode(mode, value, cutoff, cutoff_value)
 
-### Transient mode
+Battery mode supports two different operation (sub)modes (*CC* and *CR*)
+and four cutoff conditions that govern when the load will turn off:
 
-XXX: write me
+    mode:       {CC|CR}
+
+    value:      current value [A] (CC mode)
+                  or
+                resistance value [Ω] (CR mode)
+
+                If `cutoff == 'V'` AND `mode == 'CC'`:
+                    list of up to 3 current values that
+                    are set once the respective cutoff_value
+                    has been reached.
+
+    cutoff:     type of cutoff condition. One of
+
+                V: voltage
+                T: time
+                E: energy
+                C: capacity
+
+    cutoff_value:
+                Value(s) at which the load is turned off or switches to a
+                different current.
+
+                Most of the time, a single float defining the cutoff-value:
+
+                    Voltage [V]
+                    Time [s]
+                    Energy [Wh]
+                    Capacity [Ah]
+
+                If  `cutoff == 'V'` AND `mode == 'CC'`:
+                    A list of up to three voltage cutoffs that
+                    trigger switching to the next current value once reached
+
+                    E.g.:
+                    value=[2.0, 1.5, 1.0]
+                    cutoff_value=[15, 12, 10]
+
+                    Level  Current     Voltage     Description
+                    ---------------------------------------------------
+                    3      2.0         15.0,       2.0A if V > 15.0V
+                    2      1.5         12.0,       1.5A if V > 12.0V
+                    1      1.0         10.0,       1.0A if V > 10.0V then off
+
+Examples:
+
+    el.ch1.BATT_mode(mode="CC", value=5.5, cutoff="Time", cutoff_value=5)
+    el.ch1.BATT_mode(mode="CR", value=500, cutoff="Energy", cutoff_value=0.5)
+    el.ch1.BATT_mode(mode="CC", value=(2.0, 1.5, 1.1), cutoff="Time", cutoff_value=(2.0, 1.5, 1.0))
+
+
+### Transient mode
+    
+Transient mode needs four parameters:
 
     el.ch1.TRANSIENT_mode(mode, trigmode, value, width)
 
+The load will switch between two states A and B depending on *mode*
+and *trigmode*.
+
+    mode:       sub-mode {CC|CV}
+    trigmode:   trigger setting {CONT|COUT|TRIG|PULS}
+                CONT is the smae as COUT. 
+    value:      list/tuple of two values for transient states  
+                in V or A, depending on *mode*
+    width:      list/tupple of two pulse width values for the two states [s]
+
+Examples:
+
+    el.ch1.TRANSIENT_mode("CC", "CONT", (1, 3.8), (50,100))
+    el.ch1.TRANSIENT_mode("CV", "PULS", [2.2, 8.1], [100, 200])
+    el.ch1.TRANSIENT_mode("CC", "Trig", [3, 9.5], [500, 250])
+    
+
 ### List mode
 
-XXX: write me
+In list mode, the evice will stepp through a list of parameter sets. The
+actual list is handed over in argument `params:`
 
     el.ch1.LIST_mode(stepmode, params)
+
+Argument explanation:
+
+    stepmode: mode for advancing in list {AUTO|TRIGGER}
+
+    params: list/tuple of lists/tuples/dicts representing a row in the list:
+
+        num     row number (1-10)
+        mode    {CC|CV|CP|CR|OPEN|SHORT}
+        value   value of current|voltage|poewr|resistance for respecive mode
+        delay   time to spend in this row [s]
+        comp    {OFF|CURRent|VOLTage|POWer|RESistance}
+        maxval  upper limit for value
+        minval  lower limit for value
+
+Examples:
+
+    # list parameters as list or tupple 
+    param = [
+                (1, "CC", 4.5, 30, "VOLTAGE", 15.0, 8.5),
+                (2, "CV", 13.5, 60, "CURRENT", 1, 0.1),
+                (3, "CV", 18.5, 45, "voltage", 2, 0.2),
+                (4, "SHORT", 18.5, 45, "voltage", 1, 0.0),
+            ]
+    el.ch1-LIST_mode("Trigger", param)
+
+
+    # list parameters as dict
+    param = [
+            { 
+                "num": 1,
+                "mode": "CV",
+                "value": 11.0,
+                "delay": 20,
+                "comp": "RESISTANCE",
+                "maxval": 13.0,
+                "minval": 9.2,
+            },
+            {
+                "num": 2,
+                "mode": "CC",
+                "value": 3.3,
+                "delay": 690,
+                "comp": "VOLTAGE",
+                "maxval": 3.5,
+                "minval": 3.0,
+            },
+        ]
+    el.ch1-LIST_mode("AUTO", param)
+
 
 ### Scan mode
 

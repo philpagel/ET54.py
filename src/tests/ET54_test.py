@@ -43,11 +43,11 @@ def test_input_state():
 
     el.on()
     for ch in el.Channels:
-        assert ch.input == "on"
+        assert ch.input == "ON"
     
     el.off()
     for ch in el.Channels:
-        assert ch.input == "off"
+        assert ch.input == "OFF"
 
     for ch in el.Channels:
         ch.CC_mode(0.1)

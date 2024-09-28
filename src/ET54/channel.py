@@ -418,7 +418,7 @@ Mode:           {mode}
     # battery mode
 
     def BATT_mode(self, mode, value, cutoff, cutoff_value):
-        """Put instrument into BATT mode
+        """Put instrument into battery test mode
 
         Battery mode supports two different operation (sub)modes (CC and CR)
         and four cutoff conditions that govern when the load will turn off:
