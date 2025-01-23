@@ -40,7 +40,7 @@ Mode:           {mode}
             case "CR":
                 ret += f"Resistance:     {self.CP_resistance} Ω"
             case "CCCV":
-                ret += f"Current:        {self.CCVC_current} A"
+                ret += f"Current:        {self.CCCV_current} A"
                 ret += f"Voltage:        {self.CCCV_voltage} V"
             case "CRCV":
                 ret += f"Resistance:     {self.CRCV_resistance} Ω"
