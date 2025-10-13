@@ -1,4 +1,4 @@
-VERSION="0.0.1"
+VERSION="0.1"
 
 help:
 	@echo "The following make targets are available:\n"
@@ -13,7 +13,7 @@ help:
 
 
 dep:
-	python -m pip install -r requirements.txt
+	python3 -m pip install -r requirements.txt
 .PHONEY: dep
 
 
@@ -36,16 +36,16 @@ test:
 
 
 dep-dev:
-	python -m pip install -r requirements-dev.txt --upgrade
+	python3 -m pip install -r requirements-dev.txt --upgrade
 .PHONEY: dep-dev
 
 build: 
-	python -m build
+	python3 -m build
 .PHONEY: build
 
 
 install: 
-	python -m pip install dist/et54-$(VERSION).tar.gz
+	python3 -m pip install dist/et54-$(VERSION).tar.gz
 .PHONEY: install
 
 
