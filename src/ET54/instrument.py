@@ -60,7 +60,8 @@ class ET54:
         if model is not None:
             self.idn["model"] = model
 
-        if self.idn["model"].upper() in ("ET5410", "ET5410A+", "ET5411", "ET5411A+"):
+        if self.idn["model"].upper() in ("ET5406A+", "ET5407A+",
+                                         "ET5410", "ET5410A+", "ET5411", "ET5411A+"):
             self.ch1 = channel("1", self.write, self.query)
             self.Channels = [self.ch1]
         elif self.idn["model"] == "ET5420A+":
