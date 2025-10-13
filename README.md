@@ -5,19 +5,22 @@ Python class for remote controlling EastTester ET54 series electronic loads.
 *Should* work with ET5410, ET5411, ET5420, ET5410A+, ET5411A+, ET5420A+,
 ET5406A+, ET5407A+
 
+
 # Status
 
-
-[![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
+* [![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
 (ET5410A+, LINUX). 
+* I test every new release on my load but I do not have access to any of the other models.
+* Successfully tested on ET5407A+ by PhracturedBlue (initial release 2024-09-18)
 
 Needs a lot more real world testing:
 
-* in actual circuits (does the load realy do what I think?)
+* in actual circuits (does the load really do what I think?)
 * with all the different models of the series
 * on Windows and MacOS
 
-Most modes of operation and all measurements have been implemented:
+Most modes of operation and all measurements have been implemented. Please note
+that not all models in the ET54 series support all of these modes.
 
 | Feature                    | Status |
 |--------------------------- |------- |
