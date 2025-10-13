@@ -1,4 +1,4 @@
-VERSION="0.1"
+RELEASE="0.1"
 
 help:
 	@echo "The following make targets are available:\n"
@@ -45,7 +45,7 @@ build:
 
 
 install: 
-	python3 -m pip install dist/et54-$(VERSION).tar.gz
+	python3 -m pip install dist/et54-$(RELEASE).tar.gz
 .PHONEY: install
 
 
