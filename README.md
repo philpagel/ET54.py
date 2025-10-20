@@ -2,25 +2,34 @@
 
 Python class for remote controlling EastTester ET54 series electronic loads.
 
-*Should* work with ET5410, ET5411, ET5420, ET5410A+, ET5411A+, ET5420A+,
-ET5406A+, ET5407A+
+This *Should* work with all models of the ET54 series: ET5410, ET5411, ET5420,
+ET5410A+, ET5411A+, ET5420A+, ET5406A+, ET5407A+
 
+<img src="img/et5410Aplus.jpg" width=161 />
+
+Sending raw SCPI commands to a device is cumbersome, so this class wraps all that into
+a more approachable interface.
 
 # Status
 
-* [![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
-(ET5410A+, LINUX). 
-* I test every new release on my load but I do not have access to any of the other models.
-* Successfully tested on ET5407A+ by PhracturedBlue (initial release 2024-09-18)
+[![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
 
-Needs a lot more real world testing:
+So far, this has sucessfully been tested on the following devices:
+
+* ET5410A+ (my device)
+* ET5407A+ by PhracturedBlue
+
+The other modles are expected to work but this is untested. If ou own one and are willing
+to run a few tests, please get in touch.
+
+Overall, this package needs more real world testing:
 
 * in actual circuits (does the load really do what I think?)
 * with all the different models of the series
-* on Windows and MacOS
+* on Windows and MacOS (I use LINUX)
 
-Most modes of operation and all measurements have been implemented. Please note
-that not all models in the ET54 series support all of these modes.
+Most documented modes of operation and all measurements have been implemented.
+Please note that not all models in the ET54 series support all of these modes.
 
 | Feature                    | Status |
 |--------------------------- |------- |
@@ -145,9 +154,9 @@ Or, on windows:
     from ET54 import ET54
     el = ET54("ASRL2::INSTR")
 
-Of course, you need to adapt it to the right device for your case.
-See [here](https://pyvisa.readthedocs.io/en/1.8/names.html) for details on
-pyvisa resource names.
+Of course, you need to adapt it to the right device for your case. See
+[here](https://pyvisa.readthedocs.io/en/stable/introduction/names.html) for
+details on pyvisa resource names.
 
 ## Instrument
 

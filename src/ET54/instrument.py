@@ -64,7 +64,7 @@ class ET54:
                                          "ET5410", "ET5410A+", "ET5411", "ET5411A+"):
             self.ch1 = channel("1", self.write, self.query)
             self.Channels = [self.ch1]
-        elif self.idn["model"] == "ET5420A+":
+        elif self.idn["model"].upper() in ("ET5420A+", "ET5420"):
             self.ch1 = channel("1", self.write, self.query)
             self.ch2 = channel("2", self.write, self.query)
             self.Channels = [self.ch1, self.ch2]
