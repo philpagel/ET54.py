@@ -10,52 +10,6 @@ ET5410A+, ET5411A+, ET5420A+, ET5406A+, ET5407A+
 Sending raw SCPI commands to a device is cumbersome, so this class wraps all that into
 a more approachable interface.
 
-# Status
-
-[![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
-
-So far, this has sucessfully been tested on the following devices:
-
-* ET5410A+ (my device)
-* ET5407A+ by PhracturedBlue
-
-The other modles are expected to work but this is untested. If ou own one and are willing
-to run a few tests, please get in touch.
-
-Overall, this package needs more real world testing:
-
-* in actual circuits (does the load really do what I think?)
-* with all the different models of the series
-* on Windows and MacOS (I use LINUX)
-
-Most documented modes of operation and all measurements have been implemented.
-Please note that not all models in the ET54 series support all of these modes.
-
-| Feature                    | Status |
-|--------------------------- |------- |
-| Input on/off               | ✓      |
-| Voltage and current ranges | ✓      |
-| OCP, OVP, OPP              | ✓      |
-| Trigger support            | ✓      |
-| V/A/P/R readout            | ✓      |  
-| CC mode                    | ✓      |
-| CV mode                    | ✓      |
-| CP mode                    | ✓      |
-| CR mode                    | ✓      |
-| CC+CV mode                 | ✓      |
-| CC+CR mode                 | ✓      |
-| Short mode                 | ✓      |  
-| LED mode                   | ✓      |  
-| Battery mode               | ✓      |  
-| Transient mode             | ✓      |  
-| List mode                  | ✓      |  
-| SCAN mode                  | (✓)    |  
-| Qualification test mode    | ✓      |  
-| Load effect testing        | —      |
-| File commands              | —      |
-| System setup               | —      |
-
-
 # In a Nutshell
 
 Here is a little example script that illustrates how things work:
@@ -101,6 +55,52 @@ for i in range(60):
 # turn off the load channel
 el.ch1.off()
 ```
+
+# Status
+
+[![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
+
+So far, this has sucessfully been tested on the following devices:
+
+* ET5410A+ (my device)
+* ET5407A+ by PhracturedBlue
+
+The other models are expected to work but this is untested. If ou own one and are willing
+to run a few tests, please get in touch.
+
+Overall, this package needs more real world testing:
+
+* in actual circuits (does the load really do what I think?)
+* with all the different models of the series
+* on Windows and MacOS (I use LINUX)
+
+Most documented modes of operation and all measurements have been implemented.
+Please note that not all models in the ET54 series support all of these modes.
+
+| Feature                    | Status |
+|--------------------------- |------- |
+| Input on/off               | ✓      |
+| Voltage and current ranges | ✓      |
+| OCP, OVP, OPP              | ✓      |
+| Trigger support            | ✓      |
+| V/A/P/R readout            | ✓      |  
+| CC mode                    | ✓      |
+| CV mode                    | ✓      |
+| CP mode                    | ✓      |
+| CR mode                    | ✓      |
+| CC+CV mode                 | ✓      |
+| CC+CR mode                 | ✓      |
+| Short mode                 | ✓      |  
+| LED mode                   | ✓      |  
+| Battery mode               | ✓      |  
+| Transient mode             | ✓      |  
+| List mode                  | ✓      |  
+| SCAN mode                  | (✓)    |  
+| Qualification test mode    | ✓      |  
+| Load effect testing        | —      |
+| File commands              | —      |
+| System setup               | —      |
+
 
 # Known issues
 
