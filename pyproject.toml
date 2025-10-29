@@ -1,3 +1,27 @@
 [build-system]
 requires = ["setuptools >= 45.2.0", "wheel != 0.1"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name="ET54"
+version="0.1"
+description="Remote controling East-Tester ET65 series electronic loads"
+dependencies= [
+   "pyvisa",
+   "pyvisa-py",
+   "pyserial",
+]
+requires-python = ">=3.10,<4"
+authors = [{name = "Philipp Pagel", email = "phil@techbotch.org"}]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["electronic load", "DC load", "SCPI", "remote control"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python"
+]
+
+[project.urls]
+Repository="https://github.com/philpagel/ET54.py"
+
