@@ -6,9 +6,9 @@ from .testconfig import *
 # Define parameters for setting voltage, current, power or resistance
 heading = "V,I,P,R"
 parameters = [
-    (24.2, 14.0, 340.2, 1.74),
-    (96.8, 4.0, 387.2, 24.2),
-    (120, 2.2, 264.0, 54.5),
+    (2.4, 14.0, 33.6, 0.17),
+    (96.8, 0.5, 48.4, 193.6),
+    (118, 1.2, 141.6, 98.33),
 ]
 
 
