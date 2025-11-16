@@ -440,6 +440,14 @@ Examples:
     el.ch1.BATT_mode(mode="CR", value=500, cutoff="Energy", cutoff_value=0.5)
     el.ch1.BATT_mode(mode="CC", value=(2.0, 1.5, 1.1), cutoff="Time", cutoff_value=(2.0, 1.5, 1.0))
 
+In battery mode the channel has two properties you probably want to read after
+the cutoff criteria has been met or even mopnitor continuously: discharge
+*capacity* [Ah] and *energy* [Wh]:
+
+    Ah = el.ch1.BATT_capacity
+    Wh = el.ch1.BATT_energy
+
+Both can only be read but not set, obviously.
 
 ### Transient mode
     

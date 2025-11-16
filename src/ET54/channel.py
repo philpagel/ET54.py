@@ -584,12 +584,12 @@ Mode:           {mode}
     @property
     def BATT_capacity(self):
         "battery discharge capacity value [Ah]"
-        return self.query(f"BATT{self.name}:CAPA?")
+        return _tofloat(self.query(f"BATT{self.name}:CAPA?"))
 
     @property
     def BATT_energy(self):
         "battery discharge energy value [Wh]"
-        return self.query(f"BATT{self.name}:ENER?")
+        return _tofloat(self.query(f"BATT{self.name}:ENER?"))
 
     @property
     def BATT_cutoff_level(self):
