@@ -12,16 +12,17 @@ software.
 1. Find the firmware file in the archive provided by the manufacturer. It has
    the extension `.hex`. E.g. `ET54A+.150.025(ET5410 ET5420 ET5408).hex`,
    `ET54A+.150.X26(强制界面).hex` or something like that.
-2. Connect a USB cable to the load and your computer
+2. With the load turned off, connect a USB cable to the load and your computer
 3. Start this tool. E.g.:
 ```sh
 ./fwupdater.py -s /dev/ttyUSB0 ET54A+.150.X26.hex   # LINUX
 ./fwupdater.py -s COM3 ET54A+.150.X26.hex           # Windows
 ```
-4. Wait until the program finishes.
-5. Wait until the load shows "Please Reset" on the display
-6. Turn load off and on again.
-7. Done.
+4. Turn on the load
+5. Wait until the program finishes.
+6. Wait until the load shows "Please Reset" on the display
+7. Turn load off and on again.
+8. Done.
 
 # Example session
 
@@ -44,7 +45,8 @@ software.
 
     准备接收文件...
     Uploading 'ET54A+.150.X26.hex': 903151 bytes
-    Progress: 100%下载成功!
+    Progress: 100%
+    下载成功!
     Upload successful.
     Wait for load to display 'Please Reset!' before cycling power.
 
@@ -69,9 +71,8 @@ software.
 
 I am providing two firmware images:
 
-    ET54A+.150.025.hex
-    ET54A+.150.X26.hex
+* `ET54A+.150.025.hex`: Found in the EEVBlog Forum
+* `ET54A+.150.X26.hex`: Received from EastTester. Presumably the latest version as of writing
 
-The latter one is what I got from East Tester, the other one was found on the
-EEVBlog Forum a bit earlier. Ask the manufacturer if there is a later version.
+Ask the manufacturer if there is a later version.
 

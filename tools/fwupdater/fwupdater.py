@@ -63,6 +63,8 @@ while True:
                 if not args.quiet:
                     print(f"\rProgress: {percent:0.0f}%", end="", flush=True)
         dev.readline()  # skip the progress dots
+        if not args.quiet:
+            print()
 
     if "下载成功!" in line:     # "Download successful!"
         if not args.quiet:
