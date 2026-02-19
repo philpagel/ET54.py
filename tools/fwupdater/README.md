@@ -23,6 +23,32 @@ software.
 6. Turn load off and on again.
 7. Done.
 
+# Example session
+
+    ❯ ./fwupdater.py -s /dev/ttyUSB1 ET54A+.150.X26.hex
+
+    杭州中创
+    Bootloader Ver:3.00
+
+    ----------------------
+    [1]下载程序
+
+    [2]运行程序
+
+    [?]帮助
+    ----------------------
+
+    删除Flash...
+    >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+    删除完成!
+
+    准备接收文件...
+    Uploading 'ET54A+.150.X26.hex': 903151 bytes
+    Progress: 100%下载成功!
+    Upload successful.
+    Wait for load to display 'Please Reset!' before cycling power.
+
+
 
 ## Usage 
 
