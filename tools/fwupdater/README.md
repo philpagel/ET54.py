@@ -8,8 +8,12 @@ software.
 
 ## Status
 
-Tested and working on ET5410A+. I don't know if the older Version (ET54xx without the "A+") 
-use the same bootloader. Feedback is welcome!
+Tested and working on ET5410A+. I don't know if the older Version (ET54xx
+without the "A+") use the same bootloader. As the filenames of the firmware
+images I have start with  `ET54A+`, I assume, that they do not work on the
+previous hardware versions and you will need different files for those.
+Feedback is welcome!
+
 
 ## Firmware Upgrade Instructions
 
@@ -93,5 +97,5 @@ I am providing two firmware images that I found online/got from the manufacturer
 * `ET54A+.150.X26.hex`: V2.01.2480.X26 (latest version as of writing)
 
 Don't ask me why the filenames don't match the actual firmware version number.
-I alos don't have release notes or anything like that, so it is unclear what
+I also don't have release notes or anything like that, so it is unclear what
 has changed between versions.
