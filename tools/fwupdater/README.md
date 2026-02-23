@@ -94,6 +94,7 @@ useful for debugging, later – i.e.  finding the bootloader version.
 I am providing two firmware images that I found online/got from the manufacturer:
 
 * [`ET54A+.150.025.hex`](./images/ET54A+.150.025.hex): V2.01.2352.025
+* [`ET54A+.150.A15.hex`](./images/ET54A+.150.A15.hex): V2.01.2408.A15
 * [`ET54A+.150.X26.hex`](./images/ET54A+.150.X26.hex): V2.01.2480.X26 (latest version as of writing)
 
 Don't ask me why the filenames don't match the actual firmware version number.

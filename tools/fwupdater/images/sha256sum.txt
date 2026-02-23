@@ -1,2 +1,5 @@
-dd7c0c58e0d16b6c8f4cf19c42d03ff3d17ba551794189b20a6f837b4a6c0b6c  ET54A+.150.025.hex
-a91d0bea3a65585fe21427d49496537929eaf717fe8ace61a28443ec01feceb3  ET54A+.150.X26.hex
+total 2640
+-rw-r--r-- 1 pagel pagel 894245 2026-02-19 14:02 ET54A+.150.025.hex
+-rw-rw-r-- 1 pagel pagel 901073 2024-07-19 14:34 ET54A+.150.A15.hex
+-r--r--r-- 1 pagel pagel 903151 2026-02-19 14:02 ET54A+.150.X26.hex
+-rw-rw-r-- 1 pagel pagel      0 2026-02-23 12:56 sha256sum.txt
