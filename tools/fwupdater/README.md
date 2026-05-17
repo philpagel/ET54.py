@@ -1,105 +1,161 @@
 # ET54xx firmware updater
 
-East Tester will provide firmware updates upon request, if begged persistently.
+East Tester will provide firmware images if begged persistently. 
 The procedure recommend by them is pretty awkward and involves running a
 Windows-only terminal emulator software of unknown origin. So I wrote this
-little script to conduct firmware updates on any OS and without untrusted
-software.
+little programm to conduct firmware updates with less trouble (and also on LINUX).
+
+You can also use this tool to flash original East-Tester Firmware to *Mustool*
+branded devices.
+
 
 ## Status
 
-Tested and working on ET5410A+. I don't know if the older hardware version
-(ET54xx without the "A+") uses the same bootloader. As the filenames of the
-firmware images I have start with  `ET54A+`, I assume, that they do not work on
-the previous hardware versions and you will need different files for those.
-If you have reliable information on that, please let me know.
+[![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
+
+I.e. I have successfully flashed an image to my ET5410A+ load using 
+this tool. 
+
+This is a re-write of my original Python tool to make it easier to use without
+having to install Python and dependencies, first.
+
+I'd be *very* grateful for feedback by anyone who was brave enough to give my
+tool a try, especially, if you are running Windows.
+
+
+#### Risk assessment
+
+* If something goes wrong, you may soft-brick your device
+* I consider the risk of hard-bricking to be almost zero because
+  sending a hexfile will preserve the bootloader and you should be able to
+  bring your device back to live using this tool or the manufacturer's tool (if
+  you can get that to work).
 
 
 ## Firmware Upgrade Instructions
 
-1. Find the firmware file in the archive provided by the manufacturer. It has
+1. Turn *off* the load
+2. Connect the load to your computer with a USB cable.  
+3. Find the firmware file in the archive provided by the manufacturer. It has
    the extension `.hex`. E.g. `ET54A+.150.025(ET5410 ET5420 ET5408).hex`,
    `ET54A+.150.X26(强制界面).hex` or something like that.
-2. With the load turned off, connect a USB cable to the load and your computer
-3. Start this tool. E.g.:
+4. Start this tool.  
+   You may have to make it executable, first (`chmod a+x et44fwupdater`)
 ```sh
-./fwupdater.py -s /dev/ttyUSB0 ET54A+.150.X26.hex   # LINUX
-./fwupdater.py -s COM3 ET54A+.150.X26.hex           # Windows
+   ./et54fwupdater -s /dev/ttyUSB0 images/ET54A+.150.X26.hex   # LINUX 
+   .\et54fwupdater.exe -s COM3 images\ET54A+.150.X26.hex       # Windows 
 ```
-4. Turn on the load
-5. Wait until the program finishes.
-6. Wait until the load shows "Please Reset" on the display
-7. Turn load off and on again.
-8. Done.
+5. Turn *on* the load  
+   You should see a menu in Chinese followed by a progress line on your computer.  
+   The load's screen will say "Downloading..." 
+6. Wait for firmware upload to finish  
+   The loads display will then show something like this:
+```
+   Programming :  xxxxxxxxx
+   Ch1 State   :  R5   
+````
+7. Wait until the load shows "Please Reset!" on the display.
+8. Turn load off and on again.
+
+The entire process will take about 12 minutes.
+
+The bootloader is very temperamental: It may take several attempts until it
+is successfully triggered.
+
 
 # Example session
 
-    ❯ ./fwupdater.py -s /dev/ttyUSB0 ET54A+.150.X26.hex
-    Sending magic number. Please turn on the device now.
-    ............
-    > 
-    > 杭州中创
-    > Bootloader Ver:3.00
-    > 
-    > ----------------------
-    > [1]下载程序
-    > 
-    > [2]运行程序
-    > 
-    > [?]帮助
-    > ----------------------
-    Selecting: [1] File Upload.
-    > 
-    > 删除Flash...
-    > >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    > 删除完成!
-    > 
-    > 准备接收文件...
-    Uploading 'ET54A+.150.X26.hex': 903151 bytes
-    Progress: 100%
-    > 下载成功!
-    Upload successful.
-    Wait for load to display 'Please Reset!' before cycling power.
+```
+❯ ./target/release/et54fwupdater -s /dev/ttyUSB1 images/ET54A+.150.X26.hex
+Sending magic number. Please turn on the device now.
+  .       
+> 杭州中创
+> Bootloader Ver:3.00
+> ----------------------
+> [1]下载程序
+> [2]运行程序
+> [?]帮助
+> ----------------------
+Selecting: [1].
+> 删除Flash...
+> >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+> 删除完成!
+> 准备接收文件...
+Uploading 'images/ET54A+.150.X26.hex'
+Progress: 20075/20075 rows 100%
+> 下载成功!
+Upload finished.
+ Wait for load to display 'Please Reset!' before cycling power.
+```
 
 Lines starting with `>` echo the output received from the device.
 
 
 ## Usage 
 
-    usage: fwupdater.py [-h] [-s SERIALDEV] [-q] hexfile
+```
+❯ ./target/release/et54fwupdater --help
+ET54xx electronic load firmware updater
 
-    Perform firmware update on an ET54xx electronic load.
+Usage: et54fwupdater [OPTIONS] <HEXFILE>
 
-    positional arguments:
-      hexfile               path to hexfile, e.g. image.hex
+Arguments:
+  <HEXFILE>  Firmware hex file
 
-    options:
-      -h, --help            show this help message and exit
-      -s, --serialdev SERIALDEV
-                            Serial device (default: /dev/ttyUSB1)
-      -i, --info            Show info only - do not upload anything (default: False)
+Options:
+  -s, --serialdev <SERIALDEV>  Serial device / COM port [default: /dev/ttyUSB0]
+  -b, --baudrate <BAUDRATE>    baud rate [default: 14400]
+  -q, --quiet                  Suppress console output
+  -h, --help                   Print help
+  -V, --version                Print version
+```
 
-      -q, --quiet           Run quietly without any output (default: False)
-
-If you find the tool too verbose, use the `-q/--quiet` flag.
-
-When setting `-i/--info`, the program will activate the bootloader but not
-trigger the hex file upload. You still need to provide the hexfile argument,
-but it is OK if that file doesn't even exist, in this case. This option may be
-useful for debugging, later – i.e.  finding the bootloader version.
 
 
 # Images
 
 I have a few firmware images that I found online and/or got from the manufacturer:
 
-* [`ET54A+.150.025.hex`](./images/ET54A+.150.025.hex): V2.01.2352.025
-* [`ET54A+.150.A15.hex`](./images/ET54A+.150.A15.hex): V2.01.2408.A15
-* [`ET54A+.150.X26.hex`](./images/ET54A+.150.X26.hex): V2.01.2480.X26 (latest version as of writing)
+* [`V6.00.2423.059.hex`](./images/ET44_V6.00.2423.059.hex)
+* [`V6.00.2522.079.hex`](./images/ET44_V6.00.2522.079.hex)
+* [`V6.00.2611.089.hex`](./images/ET44_V6.00.2611.089.hex)
 
-Don't ask me why the filenames don't match the actual firmware version number.
-I also don't have release notes or anything like that, so it is unclear what
-has changed between versions. If you have another one (especially for the
-non-"A+" versions) I'd be grateful for getting them.
+
+# Installation
+
+Download a binary from the [latest release](https://github.com/philpagel/ET54.py/releases/latest). No installation required. On
+Linux, make sure to make the binary executable
+
+    chmod a+x et54fwupdater
+
+
+# Trouble shooting
+
+What to do if things don't work/go wrong and/or you have soft-bricked your
+device and/or the update ends in an error message and/or the bootloader will not
+launch? Here are some things to check or do:
+
+1. Don't panic! Even if the device appears dead, the bootloader is still there
+   and the device will almost certainly be recoverable. (Guess how I know...)
+2. Make sure your OS supports the CH340 usb-serial converter. Install drivers
+   if necessary.
+3. Double check that you are using the *correct* serial device (`COMx` port or
+   `/dev/ttyUSBx`).
+5. Try again, several times if necessary.
+    - Turn off the load
+    - Kill the updater program
+    - Start over
+6. When turning the device on, do so swiftly. Sometimes when pressing the power
+   button too slowly, triggering the bootloader fails.
+7. Reset everything:
+    - Unplug the USB cable from the computer. 
+    - Maybe even reboot the computer.
+    - Turn off the load and unplug the power lead.
+    - Wait for 20 minutes or even over night until the last cap inside has
+      fully discharged.
+    - Say a few incantations.
+    - Start over.
+
+If all of that fails, you are officially entitled to panic (Just kidding.)
 
 
