@@ -52,12 +52,13 @@ tool a try, especially, if you are running Windows.
    The loads display will then show something like this:
 ```
    Programming :  xxxxxxxxx
-   Ch1 State   :  R5   
+   CH1 State   :  R5   
 ````
 7. Wait until the load shows "Please Reset!" on the display.
 8. Turn load off and on again.
 
-The entire process will take about 12 minutes.
+The entire process will take about 13 minutes (~11min for the upload and another
+~2 minutes for programming).
 
 The bootloader is very temperamental: It may take several attempts until it
 is successfully triggered.
@@ -66,7 +67,7 @@ is successfully triggered.
 # Example session
 
 ```
-❯ ./target/release/et54fwupdater -s /dev/ttyUSB1 images/ET54A+.150.X26.hex
+❯ ./et54fwupdater -s /dev/ttyUSB1 images/ET54A+.150.X26.hex
 Sending magic number. Please turn on the device now.
   .       
 > 杭州中创
