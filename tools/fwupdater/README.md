@@ -95,7 +95,7 @@ Lines starting with `>` echo the output received from the device.
 ## Usage 
 
 ```
-❯ ./target/release/et54fwupdater --help
+❯ ./et54fwupdater --help
 ET54xx electronic load firmware updater
 
 Usage: et54fwupdater [OPTIONS] <HEXFILE>
