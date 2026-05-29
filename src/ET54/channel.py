@@ -1181,7 +1181,10 @@ Mode:           {mode}
         return _tofloat(self.query(f"MEAS{self.name}:RESISTANCE?"))
 
     def read_all(self):
-        "read (measure) output values: Volts [V], current [A], Power[W] Resistance[Ω]"
-        return _tofloats(self.query(f"MEAS{self.name}:ALL?"))
+        "read (measure) output values: voltage [V], current [A], power [W], resistance [Ω]"
+        vals = _tofloats(self.query(f"MEAS{self.name}:ALL?"))
+        # Device transmits fields in order: current, voltage, power, resistance
+        current_a, voltage_v, power_w, resistance_ohm = vals
+        return (voltage_v, current_a, power_w, resistance_ohm)
 
 
