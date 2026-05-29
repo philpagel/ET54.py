@@ -38,7 +38,7 @@ Mode:           {mode}
             case "CP":
                 ret += f"Power:          {self.CP_power} W"
             case "CR":
-                ret += f"Resistance:     {self.CP_resistance} Ω"
+                ret += f"Resistance:     {self.CR_resistance} Ω"
             case "CCCV":
                 ret += f"Current:        {self.CCCV_current} A"
                 ret += f"Voltage:        {self.CCCV_voltage} V"
@@ -70,7 +70,7 @@ Mode:           {mode}
                     ret += f"cutoff_value:   {self.BATT_cutoff_value} Ah\n"
             case "TRAN":
                 submode = self.TRANSIENT_submode
-                ret += f"submode:        {seld.TRANSIENT_submode}\n"
+                ret += f"submode:        {self.TRANSIENT_submode}\n"
                 ret += f"trigmode:       {self.TRANSIENT_trigmode}\n"
                 if submode == "CC":
                     ret += f"current:        {self.TRANSIENT_current} V\n"
@@ -411,7 +411,7 @@ Mode:           {mode}
         return _tofloat(self.query(f"LED{self.name}:COEF?"))
 
     @LED_coefficient.setter
-    def LED_coefficient(self):
+    def LED_coefficient(self, value):
         self.write(f"LED{self.name}:COEF {value}")
 
     ############################################################
@@ -1083,7 +1083,7 @@ Mode:           {mode}
 
     @QUALI_state.setter
     def QUALI_state(self, state):
-        self.query(f"QUAL{self.name}:TEST {state}")
+        self.write(f"QUAL{self.name}:TEST {state}")
     
     @property
     def QUALI_result(self):
