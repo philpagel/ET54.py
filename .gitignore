@@ -6,3 +6,6 @@ __pycache__
 .coverage
 dist/
 *.egg-info
+Cargo.lock
+target
+debug
