@@ -68,7 +68,7 @@ So far, this has sucessfully been tested on the following devices:
 * ET5410A+ (my device)
 * ET5407A+ by PhracturedBlue
 
-The other models are expected to work but this is untested. If ou own one and are willing
+The other models are expected to work but this is untested. If you own one and are willing
 to run a few tests, please get in touch.
 
 Overall, this package needs more real world testing:
