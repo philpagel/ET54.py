@@ -440,9 +440,9 @@ def test_measure():
         assert ch.read_current() <= 0.01
         assert ch.read_power() <= 0.01
         assert ch.read_resistance() <= 0.01
-        (V, I, P, R) = ch.read_all()
-        assert V <= 0.01
+        (I, V, P, R) = ch.read_all()
         assert I <= 0.01
+        assert V <= 0.01
         assert P <= 0.01
         assert R <= 0.01
 
