@@ -5,6 +5,9 @@ Python class for remote controlling EastTester ET54 series electronic loads.
 This *Should* work with all models of the ET54 series: ET5410, ET5411, ET5420,
 ET5410A+, ET5411A+, ET5420A+, ET5406A+, ET5407A+
 
+These devices are manufactured by EastTester but also marketed under the *Mustool* 
+and *Yertai* brand.
+
 <img src="img/et5410Aplus.jpg" width=161 />
 
 Sending raw SCPI commands to a device is cumbersome, so this class wraps all that into
@@ -552,10 +555,14 @@ Once the load is set up, you can start reading measurement data
 from it. In contrast to parameters, measurements are implemented as `read_`
 methods. There are four quantities you can measure:
 
-    V = el.ch1.read_voltage()
     I = el.ch1.read_current()
+    V = el.ch1.read_voltage()
     P = el.ch1.read_power()
     R = el.ch1.read_resistance()
+
+Or all at once:
+
+    I, V, P, R = e.ch1.read_all()
 
 
 # Trouble shooting
