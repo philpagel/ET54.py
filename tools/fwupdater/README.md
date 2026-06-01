@@ -32,6 +32,15 @@ tool a try, especially, if you are running Windows.
   you can get that to work).
 
 
+# Installation
+
+Download a binary (Windows or LINUX) from the [latest
+release](https://github.com/philpagel/ET54.py/releases/latest). No installation
+required. On Linux, make sure to make the binary executable
+
+    chmod a+x et54fwupdater
+
+
 ## Firmware Upgrade Instructions
 
 1. Turn *off* the load
@@ -112,21 +121,14 @@ Options:
 ```
 
 
-
 # Images
 
-I have a few firmware images that I found online and/or got from the manufacturer:
+I have a few firmware images that I found online and/or got from the manufacturer.
+
 
 * [`ET54A+.150.025.hex`](./images/ET54A+.150.025.hex): V2.01.2352.025
 * [`ET54A+.150.A15.hex`](./images/ET54A+.150.A15.hex): V2.01.2408.A15
 * [`ET54A+.150.X26.hex`](./images/ET54A+.150.X26.hex): V2.01.2480.X26 (latest version as of writing)
-
-# Installation
-
-Download a binary from the [latest release](https://github.com/philpagel/ET54.py/releases/latest). No installation required. On
-Linux, make sure to make the binary executable
-
-    chmod a+x et54fwupdater
 
 
 # Trouble shooting
