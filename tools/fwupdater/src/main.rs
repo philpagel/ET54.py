@@ -6,7 +6,8 @@ use serialport::SerialPort;
 use encoding_rs::GBK;
 use std::{
     fs,
-    io::{Read, Write},
+    process,
+    io::{Write},
     thread,
     time::{Duration, Instant},
 };
@@ -70,9 +71,12 @@ impl Logger {
     }
 }
 
+
 fn main() -> Result<()> {
     let args = Args::parse();
     let logger = Logger::new(args.quiet);
+    
+    check_hexfile(&args.hexfile, &logger);
 
     let mut port = serialport::new(&args.serialdev, args.baudrate)
         .timeout(Duration::from_millis(100))
@@ -299,4 +303,91 @@ fn read_line(port: &mut dyn SerialPort) -> Result<String> {
     let buffer: String = decoded_cow.into_owned();
 
     Ok(buffer)
+}
+
+
+fn check_hexfile(
+    filename: &String,
+    logger: &Logger,
+    ) {
+    
+    logger.log("Sanity checking hexfile");
+
+    let contents = fs::read_to_string(&filename)
+        .unwrap_or_else(|e| {
+            eprintln!("Failed to read {}: {}", filename, e);
+            process::exit(1);
+        });
+    let mut last_line = "";
+    for (i, line) in contents.lines().enumerate() {
+        let line = line.trim_end();
+        last_line = line;
+
+        if !line.starts_with(':') {
+            eprintln!("Error: Line {}: does not start with a colon.", i);
+            process::exit(1);
+        }
+
+        let bytecount = parse_hex_byte(&line[1..3])
+            .unwrap_or_else(|e| {
+                eprintln!("Error: Line {}: {}", i, e);
+                process::exit(1);
+            });
+
+        let payload = hex_to_bytes(&line[3..line.len() - 2])
+            .unwrap_or_else(|e| {
+                eprintln!("Error: Line {}: {}", i, e);
+                process::exit(1);
+            });
+
+        let checksum = parse_hex_byte(&line[line.len() - 2..])
+            .unwrap_or_else(|e| {
+                eprintln!("Error: Line {}: {}", i, e);
+                process::exit(1);
+            });
+
+        if payload.len() != bytecount as usize + 3 {
+            eprintln!("Error: incorrect bytecount in line {}", i);
+            process::exit(1);
+        }
+
+        let check_bytes = hex_to_bytes(&line[1..line.len() - 2])
+            .unwrap_or_else(|e| {
+                eprintln!("Error: Line {}: {}", i, e);
+                process::exit(1);
+            });
+
+        let check: u32 = check_bytes.iter().map(|&b| b as u32).sum();
+
+        let complement = ((!check + 1) & 0xFF) as u8;
+
+        if complement != checksum {
+            eprintln!("Error: incorrect checksum in line {}", i);
+            process::exit(1);
+        }
+    }
+
+    if last_line != ":00000001FF" {
+        eprintln!("Error: Last line is not an end of file record.");
+        process::exit(1);
+    }
+}
+
+fn parse_hex_byte(s: &str) -> Result<u8, String> {
+    u8::from_str_radix(s, 16)
+        .map_err(|_| format!("Invalid hex byte: {}", s))
+}
+
+fn hex_to_bytes(s: &str) -> Result<Vec<u8>, String> {
+    if s.len() % 2 != 0 {
+        return Err("Hex string has odd length".to_string());
+    }
+
+    let mut bytes = Vec::with_capacity(s.len() / 2);
+
+    for i in (0..s.len()).step_by(2) {
+        bytes.push(parse_hex_byte(&s[i..i + 2])?);
+    }
+
+    Ok(bytes)
 }

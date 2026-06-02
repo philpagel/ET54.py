@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name="ET54"
-version="0.1"
+version="0.1.1"
 description="Remote controling East-Tester ET65 series electronic loads"
 dependencies= [
    "pyvisa",
