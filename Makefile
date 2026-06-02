@@ -27,6 +27,7 @@ test:
 
 build: 
 	python3 -m build
+	make -C tools/fwupdater/ build
 .PHONEY: build
 
 clean:
@@ -34,4 +35,5 @@ clean:
 	rm -rf src/ET54.egg-info
 	rm -rf src/ET54/__pycache__
 	rm -rf src/tests/__pycache__
+	make -C tools/fwupdater/ clean
 .PHONEY: clean
