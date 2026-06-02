@@ -96,7 +96,7 @@ fn main() -> Result<()> {
 }
 
 fn trigger_bootloader(port: &mut dyn SerialPort, logger: &Logger) -> Result<()> {
-    logger.log("Sending magic number. Please turn on the device now.");
+    logger.log("Waiting for bootloader. Please turn on the device now.");
 
     const MAGIC: &[u8] = &[0x1b, 0x42, 0x54, 0x39, 0x36, 0x05, 0x7a];
     let mut pos = 0usize;
