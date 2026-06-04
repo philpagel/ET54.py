@@ -156,7 +156,6 @@ jobs:
 
             - Linux x86_64
             - Windows x86_64
-            - macOS Intel
             - macOS Apple Silicon
 
             SHA256 checksum files are included for all binaries.
