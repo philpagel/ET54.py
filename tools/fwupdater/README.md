@@ -1,9 +1,9 @@
 # ET54xx firmware updater
 
-East Tester will provide firmware images if begged persistently. 
-The procedure recommend by them is pretty awkward and involves running a
-Windows-only terminal emulator software of unknown origin. So I wrote this
-little programm to conduct firmware updates with less trouble (and also on LINUX).
+East Tester will provide firmware images if begged persistently.  The procedure
+recommend by them is pretty awkward and involves running a Windows-only
+terminal emulator software of unknown origin. So I wrote this little programm
+to conduct firmware updates with less trouble (and not only on Windows).
 
 You can also use this tool to flash original East-Tester Firmware to *Mustool*
 branded devices.
@@ -13,14 +13,13 @@ branded devices.
 
 [![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
 
-I.e. I have successfully flashed an image to my ET5410A+ load using 
-this tool. 
+I have successfully flashed my ET5410A+ load using this tool. 
 
 This is a re-write of my original Python tool to make it easier to use without
 having to install Python and dependencies, first.
 
 I'd be *very* grateful for feedback by anyone who was brave enough to give my
-tool a try, especially, if you are running Windows.
+tool a try, especially, if you are running Windows or MacOS.
 
 
 #### Risk assessment
@@ -34,9 +33,9 @@ tool a try, especially, if you are running Windows.
 
 ## Installation
 
-Download a binary (Windows or LINUX) from the [latest
+Download a binary (Windows/LINUX/MacOS) from the [latest
 release](https://github.com/philpagel/ET54.py/releases/latest). No installation
-required. On Linux, make sure to make the binary executable
+required. On Linux/Mac, make sure to make the binary executable, first:
 
     chmod a+x et54fwupdater
 
