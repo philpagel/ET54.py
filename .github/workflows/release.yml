@@ -145,6 +145,10 @@ jobs:
             pip install ET54
             \`\`\`
 
+            Firmware updater:
+
+            no installation required
+
             ## Included assets
 
             ### Python package
@@ -157,8 +161,6 @@ jobs:
             - Linux x86_64
             - Windows x86_64
             - macOS Apple Silicon
-
-            SHA256 checksum files are included for all binaries.
             `;
 
             await github.rest.repos.updateRelease({
