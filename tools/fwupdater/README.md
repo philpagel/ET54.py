@@ -13,22 +13,11 @@ branded devices.
 
 [![works on my machine badge](https://cdn.jsdelivr.net/gh/nikku/works-on-my-machine@v0.4.0/badge.svg)](https://github.com/nikku/works-on-my-machine)
 
-I have successfully flashed my ET5410A+ load using this tool. 
+I can reliably flash my ET5410A+ load using this tool and I have received 
+reports from others using it sucessfully.
 
-This is a re-write of my original Python tool to make it easier to use without
-having to install Python and dependencies, first.
-
-I'd be *very* grateful for feedback by anyone who was brave enough to give my
-tool a try, especially, if you are running Windows or MacOS.
-
-
-#### Risk assessment
-
-* If something goes wrong, you may soft-brick your device
-* I consider the risk of hard-bricking to be almost zero because
-  sending a hexfile will preserve the bootloader and you should be able to
-  bring your device back to live using this tool or the manufacturer's tool (if
-  you can get that to work).
+This is a re-write (wiht some AI help) of my original Python tool to make it
+easier to use without having to install Python and dependencies, first.
 
 
 ## Installation
